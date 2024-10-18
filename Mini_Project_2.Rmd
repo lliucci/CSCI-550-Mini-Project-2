@@ -1,0 +1,28 @@
+---
+title: "CSCI 550 Mini Project 2"
+output: pdf_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+conflicted::conflicts_prefer(dplyr::filter(),dplyr::lag())
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+## Reading in data
+
+```{r data}
+cook_county_data <- read_csv("cook_county_train_val.csv")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
