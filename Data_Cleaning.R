@@ -1,6 +1,7 @@
 # Loading packages
 library(tidyverse)
 library(lubridate)
+library(mosaic)
 
 # Reading Data
 data = read_csv("cook_county_train_val.csv")
@@ -37,5 +38,27 @@ data = data %>%
 # Removing rows with at least 1 missing value
 data = data %>%
     drop_na()
+
+# Filtering extreme observations
+is_outlier = function(x){
+    result = abs(x - mean(x)) > 3*sd(x)
+    return(result)
+}
+
+apply(data, 2, favstats)
+
+# Removing outliers for variables where max() is greater than q3()
+data = data %>%
+    filter(!is_outlier(`Sale Price`),
+           !is_outlier(`Land Square Feet`),
+           !is_outlier(Baths),
+           !is_outlier(`Lot Size`),
+           !is_outlier(`Town and Neighborhood`),
+           !is_outlier(`Age Decade`),
+           !is_outlier(`Age`),
+           !is_outlier(`Estimate (Land)`),
+           !is_outlier(`Estimate (Building)`),
+           !is_outlier(`Building Square Feet`),
+           !is_outlier(`Other Improvements`))
 
 write_csv(data, "data_cleaned.csv")
