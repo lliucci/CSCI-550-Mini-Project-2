@@ -58,20 +58,28 @@ data = data %>%
          !is_outlier(`Land Square Feet`),
          !is_outlier(Baths),
          !is_outlier(`Lot Size`),
-         !is_outlier(`Town and Neighborhood`),
+         !is_outlier(`Town and Neighborhood`), # I don't think outliers need to be removed
          !is_outlier(`Age Decade`),
          !is_outlier(`Age`),
          !is_outlier(`Estimate (Land)`),
          !is_outlier(`Estimate (Building)`),
          !is_outlier(`Building Square Feet`),
-         !is_outlier(`Other Improvements`))
+         !is_outlier(`Other Improvements`)) # can just be removed, codebook says this is useless
 
+# Writing Data at this stage (Where Eliot got to)
+
+write_csv(data, "data_cleaned.csv")
+
+
+# Doing Extra Cleaning
+
+data <- read_csv("data_cleaned.csv")
 
 # Converting Columns into factors with levels
 data <- data |> 
   mutate(`Property Class` = factor(`Property Class`),
-         `Neighborhood Code` = factor(`Neighborhood Code`),
-         `Town Code` = factor(`Town Code`),
+         #`Neighborhood Code` = factor(`Neighborhood Code`),
+         #`Town Code` = factor(`Town Code`),
          Apartments = factor(Apartments),
          `Wall Material` = factor(`Wall Material`),
          `Roof Material` = factor(`Roof Material`),
@@ -104,16 +112,16 @@ data <- data |>
          `O'Hare Noise` = factor(`O'Hare Noise`),
          Floodplain = factor(Floodplain),
          `Road Proximity` = factor(`Road Proximity`),
-         `Sale Year` = factor(`Sale Year`),
-         `Sale Quarter` = factor(`Sale Quarter`),
-         `Sale Half-Year` = factor(`Sale Half-Year`),
+         #`Sale Year` = factor(`Sale Year`),
+         #`Sale Quarter` = factor(`Sale Quarter`),
+         #`Sale Half-Year` = factor(`Sale Half-Year`),
          `Sale Quarter of Year` = factor(`Sale Quarter of Year`),
-         `Sale Month of Year` = factor(`Sale Month of Year`),
+         #`Sale Month of Year` = factor(`Sale Month of Year`),
          `Sale Half of Year` = factor(`Sale Half of Year`),
          `Most Recent Sale` = factor(`Most Recent Sale`),
          `Pure Market Filter` = factor(`Pure Market Filter`),
          `Garage Indicator` = factor(`Garage Indicator`),
-         `Town and Neighborhood` = factor(`Town and Neighborhood`)
+         #`Town and Neighborhood` = factor(`Town and Neighborhood`)
          )
 
 
@@ -147,6 +155,8 @@ data <- data |> select(-c(`Construction Quality`,
                           `Modeling Group`,
                           Use))
 
+
+# If we think the data has been cleaned enough
 
 write_csv(data, "data_cleaned.csv")
 
