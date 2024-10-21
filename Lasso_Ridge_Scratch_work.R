@@ -211,3 +211,19 @@ predict(data.fit.lasso, s = data.bestlam.lasso, type = "coefficients")
 mean((data.pred.lasso - data.test$`Sale Price`)^2)
 
 
+## Putting Stuff on the map
+library(sf)
+library(maps)
+
+cook_map <- map_data('county', 'illinois') |> filter(subregion == 'cook')
+ggplot(cook_map, aes(long, lat)) +
+  geom_polygon(fill = "white", colour = "black") + 
+  geom_point(data = data, aes(x = Longitude, y = Latitude, color = factor(`Property Class`)), size = 0.05)+
+  coord_quickmap()
+
+ggplot(cook_map, aes(long, lat)) +
+  geom_polygon(fill = "white", colour = "black") + 
+  geom_point(data = data, aes(x = Longitude, y = Latitude, color = `Sale Price`), size = 0.05)+
+  coord_quickmap()
+
+
