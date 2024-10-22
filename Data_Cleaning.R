@@ -74,18 +74,18 @@ data <- data %>%
     `Construction Quality`, # NA
     `Site Desirability`, # NA
     `Other Improvements`, # NA
-    `Repair Condition`, # NA, Codebook said "Might not be necessary" Idk if we should keep it
+    `Repair Condition`, ## NA maybe, Idk if we should keep it
     `Deed No.`, # NA
     Longitude, # NA
     Latitude, # NA
-    `Census Tract`, # NA, maybe. Could be used for plotting/clustering
+    `Census Tract`, ## NA, maybe. Could be used for plotting/clustering
     `Modeling Group`, # NA
     Use, # NA
     `Sale Quarter`, # This variable doesn't make sense to me. `Sale Quarter of Year` makes more sense to keep
     `Sale Half-Year`, # This variable doesn't make sense to me. `Sale Half of Year` makes more sense to keep
     `Sale Half of Year`, # Variable information captured in `Sale Quarter of Year`
-    `Neigborhood Code (mapping)`, # NA, maybe. Could be used for plotting/clustering
-    `Town and Neighborhood`, # NA unless we treat it as a random variable, it has 800 levels
+    `Neigborhood Code (mapping)`, ## NA, maybe. Could be used for plotting/clustering
+    `Town and Neighborhood`, ## NA unless we treat it as a random variable, it has 800 levels
     `Age Decade` # This variable is better captured in `Age`
   ))
 
@@ -95,7 +95,7 @@ data <- data %>%
   mutate(
     # `Repair Condition` = as.factor(`Repair Condition`),
     # `Census Tract` = as.factor(`Census Tract`),
-    # `Neighborhood Code (mapping)` = as.factor(`Neighborhood Code (mapping)`),
+    # `Neighborhood Code (mapping)` = as.factor(`Neigborhood Code (mapping)`),
     # `Town and Neighborhood` = as.factor(`Town and Neighborhood`),
     `Property Class` = as.factor(`Property Class`),
     `Land Square Feet` = as.numeric(`Land Square Feet`),
