@@ -5,6 +5,8 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 library(glmnet)
 library(lubridate)
 library(mosaic)
+library(ggthemes)
+
 conflicted::conflicts_prefer(dplyr::filter(),dplyr::lag(), base::sample(), base::mean())
 
 
@@ -214,16 +216,47 @@ mean((data.pred.lasso - data.test$`Sale Price`)^2)
 ## Putting Stuff on the map
 library(sf)
 library(maps)
+library(ggthemes)
+library(ggdark)
 
 cook_map <- map_data('county', 'illinois') |> filter(subregion == 'cook')
-ggplot(cook_map, aes(long, lat)) +
+map1 <- ggplot(cook_map, aes(long, lat)) +
   geom_polygon(fill = "white", colour = "black") + 
-  geom_point(data = data, aes(x = Longitude, y = Latitude, color = factor(`Property Class`)), size = 0.05)+
-  coord_quickmap()
+  geom_point(data = data, aes(x = Longitude, y = Latitude, color = factor(`Property Class`)), size = 0.025)+
+  coord_quickmap()+
+  theme_solid()
 
-ggplot(cook_map, aes(long, lat)) +
+map2<- ggplot(cook_map, aes(long, lat)) +
   geom_polygon(fill = "white", colour = "black") + 
-  geom_point(data = data, aes(x = Longitude, y = Latitude, color = `Sale Price`), size = 0.05)+
-  coord_quickmap()
+  geom_point(data = data, aes(x = Longitude, y = Latitude, color = `Sale Price`), size = 0.025)+
+  scale_color_gradient(low = "#69f04e", high = "#ff0845")+
+  coord_quickmap()+
+  theme_solid()
+
+cook_map2 <- read_sf('Congressional_District.geojson')
+map3 <- ggplot(cook_map2) +
+  geom_sf()+
+  geom_point(data = data, aes(x = Longitude, y = Latitude, color = `Sale Price`), size = 0.025, alpha = 0.25)+
+  scale_color_gradient(low = "#6fe7f7", high = "#890000")+
+  coord_sf()+
+  theme_solid()
+
+map3
+
+## Trying Something Crazy here (This is really cool stuff)
+library(leaflet)
+library(leaflet.providers)
+cook_overlay <- st_transform(cook_map2)
+
+County_Overlay <- leaflet() |>
+  addTiles() |>
+  #addProviderTiles(providers$Esri.WorldImagery) |>
+  setView(lng = mean(data$Longitude), lat = mean(data$Latitude), zoom = 10) |>
+  addPolygons(data = cook_overlay, color = "blue", stroke = 1, opacity = 0.8) #|>
+  addMarkers(lng = data$Longitude, lat = data$Latitude, group = 'Properties')
 
 
+County_Overlay
+
+
+addMarkers(map = County_Overlay, lng = data$Longitude, lat = data$Latitude, group = 'Properties')

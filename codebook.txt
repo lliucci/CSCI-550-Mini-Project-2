@@ -4,7 +4,7 @@ Note: Some fields (e.g. "Design Plan") encode null values as 0.
 PIN
 Unique Permanent Identification Number for each property. All PINs are 14 digits: 2 digits for area + 2 digits for sub-area + 2 digits for block + 2 digits for parcel + 4 digits for the multicode
 Plain Text
-Not Needed
+Not Needed (This is basically observation ID), looking how its made however, there might be some use to it...
 
 
 Property Class
