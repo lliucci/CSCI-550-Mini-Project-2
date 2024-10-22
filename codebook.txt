@@ -331,7 +331,7 @@ Number
 Categorical
 
 
-Neigborhood Code (mapping)
+Neighborhood Code (mapping)
 Unmodified neighborhood code that can be used for mapping.
 Number
 Might not be the most useful for regression, could be useful for visualization
