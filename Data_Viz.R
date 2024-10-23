@@ -64,7 +64,7 @@ ggsave(SP_vs_Lot_Building_Size,
     units = 'px',
     scale = 2)
 
-# Spatial Map
+# Spatial Map of Sale Price
 
 register_google(key = "AIzaSyCnq3okTIRjxfQ0wHWGyu08HGCrFtIQo4M", write = TRUE)
 
@@ -73,7 +73,7 @@ Map <- get_googlemap(center = c(long = -87.8,lat = 41.8), maptype = "satellite",
 cook_map2 <- read_sf('Congressional_District.geojson')
 cook_map_overlay = st_transform(cook_map2)
 
-Sat_Map = ggmap(Map, darken = c(0.1, "white")) +
+Sat_Map_Sale_Price = ggmap(Map, darken = c(0.1, "white")) +
     geom_point(data = data, 
                 aes(x = Longitude, 
                     y = Latitude, 
@@ -83,8 +83,80 @@ Sat_Map = ggmap(Map, darken = c(0.1, "white")) +
     scale_color_gradient(low = "#6fe7f7", high = "#890000") +
     labs(x = "Longitude", y = "Latitude", color = "Sale Price ($)")
 
-ggsave(Sat_Map,
-    filename = "Figures/Sat_Map.png",
+ggsave(Sat_Map_Sale_Price,
+    filename = "Figures/Sat_Map_of_Sale_Price.png",
+    height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Spatial Map of Property Class
+
+Sat_Map_Property_Class = ggmap(Map, darken = c(0.1, "white")) +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = factor(Property_Class)), 
+                size = 0.1, 
+                alpha = 0.75) +
+    labs(x = "Longitude", y = "Latitude", color = "Property Class")
+
+ggsave(Sat_Map_Property_Class,
+    filename = "Figures/Sat_Map_of_Property_Class.png",
+    height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Spatial Map of Neighborhood Code
+
+Sat_Map_Neighborhood_Code = ggmap(Map, darken = c(0.1, "white")) +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = Neighborhood_Code), 
+                size = 0.1, 
+                alpha = 0.75) +
+    labs(x = "Longitude", y = "Latitude", color = "Neighborhood Code")
+
+ggsave(Sat_Map_Neighborhood_Code,
+    filename = "Figures/Sat_Map_of_Neighborhood_Code.png",
+    height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Spatial Map of Neighborhood Code
+
+Sat_Map_Town_Code = ggmap(Map, darken = c(0.1, "white")) +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = Town_Code), 
+                size = 0.1, 
+                alpha = 0.75) +
+    labs(x = "Longitude", y = "Latitude", color = "Town Code")
+
+ggsave(Sat_Map_Town_Code,
+    filename = "Figures/Sat_Map_of_Town_Code.png",
+    height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Spatial Map of Design Plan
+
+Sat_Map_Design_Plan = ggmap(Map, darken = c(0.1, "white")) +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = factor(Design_Plan)), 
+                size = 0.1, 
+                alpha = 0.75) +
+    labs(x = "Longitude", y = "Latitude", color = "Design Plan")
+
+ggsave(Sat_Map_Design_Plan,
+    filename = "Figures/Sat_Map_of_Design_Plan.png",
     height = 1200,
     width = 1200,
     units = 'px',
