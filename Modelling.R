@@ -20,19 +20,33 @@ data = data %>%
             `Attic_Type` = factor(`Attic_Type`),
             `Design_Plan` = factor(`Design_Plan`),
             `Cathedral_Ceiling` = factor(`Cathedral_Ceiling`),
-            `Garage 1 Size`) |>
+            Garage_1_Size) |>
     select(-c(Use, `Modeling Group`))
 
 
 
 # Simple Linear Regression -----------------------------
-lm_slr = lm(`Sale Price` ~ Age, data = data)
+lm_slr = lm(Sale_Price ~ Age, data = data)
 summary(lm_slr)
+lm_slr_land_size <- lm(Sale_Price~ Land_Square_Feet, data = data)
+summary(lm_slr_land_size)
+lm_slr_build_size <- lm(Sale_Price~Land_Square_Feet, data = data)
+summary(lm_slr_build_size)
 
 
 # Multiple Linear Regression ---------------------------
 lm_mlr = lm(`Sale Price` ~ Age + Baths * Bedrooms, data = data)
 summary(lm_mlr)
+
+# MLR with longitude and lattitude
+lm_longlat<- lm(Sale_Price ~ Longitude + Latitude, data = data)
+summary(lm_longlat)
+lm_longlat$residuals
+
+
+plot(data$Longitude~lm_longlat$residuals)
+plot(data$Latitude~lm_longlat$residuals)
+
 
 # Stepwise Regression - Backward Selection and Hybrid Selection
 
