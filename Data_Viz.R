@@ -1,4 +1,6 @@
 library(tidyverse)
+library(ggmap)
+library(sf)
 theme_set(theme_bw())
 
 data = read_csv("data_cleaned.csv")
@@ -7,26 +9,26 @@ data = data %>%
     mutate(Baths = factor(Baths),
             Rooms = factor(Rooms),
             Bedrooms = factor(Bedrooms),
-            `Sale Year` = factor(`Sale Year`),
-            `Property Class` = factor(`Property Class`),
+            Sale_Year = factor(`Sale_Year`),
+            `Property_Class` = factor(`Property_Class`),
             Apartments = factor(Apartments),
             Basement = factor(Basement),
-            `Attic Type` = factor(`Attic Type`),
-            `Design Plan` = factor(`Design Plan`),
-            `Cathedral Ceiling` = factor(`Cathedral Ceiling`),
+            `Attic_Type` = factor(`Attic_Type`),
+            `Design_Plan` = factor(`Design_Plan`),
+            `Cathedral_Ceiling` = factor(`Cathedral_Ceiling`),
             `Garage 1 Size`)
 
-# Sale Price against Age and Number of Rooms
+# Sale_Price against Age and Number of Rooms
 data %>%
-    ggplot(aes(x = Age, y = `Sale Price`, color = `Rooms`)) +
+    ggplot(aes(x = Age, y = `Sale_Price`, color = `Rooms`)) +
     geom_point(alpha = 0.1) +
     geom_smooth(method = "lm", se = F) +
     facet_wrap(~`Rooms`)
 
-# Sale Price against Number of Bathrooms
+# Sale_Price against Number of Bathrooms
 SP_vs_Bathrooms = data %>%
     ggplot() +
-    geom_boxplot(aes(x = Baths, y = `Sale Price`))
+    geom_boxplot(aes(x = Baths, y = `Sale_Price`))
 
 ggsave(SP_vs_Bathrooms,
     filename = "Figures/SP_vs_Bathrooms.png",
@@ -35,9 +37,9 @@ ggsave(SP_vs_Bathrooms,
     units = 'px',
     scale = 2)
 
-# Sale Price against Lot Size
+# Sale_Price against Lot Size
 SP_vs_LS = data %>%
-    ggplot(aes(x = `Lot Size`, y = `Sale Price`)) +
+    ggplot(aes(x = `Lot_Size`, y = `Sale_Price`)) +
     geom_point(alpha = 0.1) +
     geom_smooth(method = 'lm', se = F)
 
@@ -48,11 +50,11 @@ ggsave(SP_vs_LS,
     units = 'px',
     scale = 2)
 
-# Sale Price against Lot Size and Building Sq. Footage
+# Sale_Price against Lot Size and Building Sq. Footage
 SP_vs_Lot_Building_Size = data %>%
-    ggplot(aes(x = `Building Square Feet`, 
-                y = `Land Square Feet`, 
-                color = `Sale Price`)) +
+    ggplot(aes(x = `Building_Square_Feet`, 
+                y = `Land_Square_Feet`, 
+                color = `Sale_Price`)) +
     geom_point(size = 2)
 
 ggsave(SP_vs_Lot_Building_Size,
@@ -62,15 +64,15 @@ ggsave(SP_vs_Lot_Building_Size,
     units = 'px',
     scale = 2)
 
-# Sale Price against Design Variables
+# Sale_Price against Design Variables
 Design_Var_GGPairs = data %>%
-    dplyr::select(`Sale Price`, 
-                `Property Class`,
+    dplyr::select(`Sale_Price`, 
+                `Property_Class`,
                 `Apartments`,
                 `Basement`,
-                `Attic Type`,
-                `Design Plan`,
-                `Cathedral Ceiling`) %>%
+                `Attic_Type`,
+                `Design_Plan`,
+                `Cathedral_Ceiling`) %>%
     GGally::ggpairs()
 
 ggsave(Design_Var_GGPairs,
@@ -80,17 +82,17 @@ ggsave(Design_Var_GGPairs,
     units = 'px',
     scale = 2)
 
-# Sale Price against Garage Variables
+# Sale_Price against Garage Variables
 Garage_GGPairs = data %>%
-    dplyr::select(`Sale Price`,
-                `Garage 1 Size`,
-                `Garage 1 Material`,
-                `Garage 1 Attachment`,
-                `Garage 1 Area`,
-                `Garage 2 Size`,
-                `Garage 2 Material`,
-                `Garage 2 Attachment`,
-                `Garage 2 Area`) %>%
+    dplyr::select(`Sale_Price`,
+                `Garage_1_Size`,
+                `Garage_1_Material`,
+                `Garage_1_Attachment`,
+                `Garage_1_Area`,
+                `Garage_2_Size`,
+                `Garage_2_Material`,
+                `Garage_2_Attachment`,
+                `Garage_2_Area`) %>%
     GGally::ggpairs()
 
 ggsave(Garage_GGPairs,
@@ -100,6 +102,28 @@ ggsave(Garage_GGPairs,
     units = 'px',
     scale = 2)
 
+# Spatial Map
 
-data %>%
-    select(`Sale Price`, )
+register_google(key = "AIzaSyCnq3okTIRjxfQ0wHWGyu08HGCrFtIQo4M", write = TRUE)
+
+Map <- get_googlemap(center = c(long = -87.8,lat = 41.8), maptype = "satellite", zoom = 9)
+
+cook_map2 <- read_sf('Congressional_District.geojson')
+cook_map_overlay = st_transform(cook_map2)
+
+Sat_Map = ggmap(Map, darken = c(0.1, "white")) +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = Sale_Price), 
+                size = 0.02, 
+                alpha = 0.75) +
+    scale_color_gradient(low = "#6fe7f7", high = "#890000") +
+    labs(x = "Longitude", y = "Latitude", color = "Sale Price ($)")
+
+ggsave(Sat_Map,
+    filename = "Figures/Sat_Map.png",
+    height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
