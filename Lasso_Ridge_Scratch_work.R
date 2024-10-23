@@ -10,121 +10,70 @@ library(ggthemes)
 conflicted::conflicts_prefer(dplyr::filter(),dplyr::lag(), base::sample(), base::mean())
 
 
-# Reading Data
-data = read_csv("cook_county_train_val.csv")
-
-# Removing first column as it is row ID
-data = data %>%
-  select(-`...1`)
-
-# Extracting important information from descriptions
-sell_date = as.numeric(0)
-rooms = as.numeric(0)
-bedrooms = as.numeric(0)
-baths = as.numeric(0)
-
-for(i in 1:nrow(data)){
-  sell_date[i] = str_split(str_split(data$Description[i], "sold on ")[[1]][2], ", is a")[[1]][1]
-  rooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][1]
-  bedrooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][2]
-  baths[i] = str_split(str_split(data$Description[i], "bedrooms, and ")[[1]][2], " of which are bathrooms")[[1]][1]
-}
-
-# Adding features of descriptions, removing descriptions
-data = data %>%
-  mutate(Sell_Date = mdy(sell_date),
-         Rooms = as.numeric(rooms),
-         Bedrooms = as.numeric(bedrooms),
-         Baths = as.numeric(baths)) %>%
-  select(-Description)
-
-# Removing rows where num bathrooms/bedrooms exceeds number of rooms
-data = data %>%
-  filter(Bedrooms < Rooms | Baths < Rooms)
-
-# Removing rows with at least 1 missing value
-data = data %>%
-  drop_na()
-
-# Filtering extreme observations
-is_outlier = function(x){
-  result = abs(x - mean(x)) > 3*sd(x)
-  return(result)
-}
-
-apply(data, 2, favstats)
-
-# Removing outliers for variables where max() is greater than q3()
-data = data %>%
-  filter(!is_outlier(`Sale Price`),
-         !is_outlier(`Land Square Feet`),
-         !is_outlier(Baths),
-         !is_outlier(`Lot Size`),
-         !is_outlier(`Town and Neighborhood`), # I don't think outliers need to be removed
-         !is_outlier(`Age Decade`),
-         !is_outlier(`Age`),
-         !is_outlier(`Estimate (Land)`),
-         !is_outlier(`Estimate (Building)`),
-         !is_outlier(`Building Square Feet`),
-         !is_outlier(`Other Improvements`)) # can just be removed, codebook says this is useless
-
-# Writing Data at this stage (Where Eliot got to)
-
-write_csv(data, "data_cleaned.csv")
-
-
-# Doing Extra Cleaning
+# Doing Extra Cleaning if needed
 
 data <- read_csv("data_cleaned.csv")
 
+
+# data no factors, removing predictors that will not have any predictive power/will not work with model.matrix
+
+data_nofactors <- data |> select(-c(Construction_Quality,
+                          Site_Desirability,
+                          Other_Improvements,
+                          `Deed No.`,
+                          `Neigborhood Code (mapping)`,
+                          Modeling_Group,
+                          Use,
+                          PIN))
+
 # Converting Columns into factors with levels
 data <- data |> 
-  mutate(`Property Class` = factor(`Property Class`),
-         #`Neighborhood Code` = factor(`Neighborhood Code`),
-         #`Town Code` = factor(`Town Code`),
+  mutate(Property_Class = factor(Property_Class),
+         # Neighborhood_Code = factor(Neighborhood_Code),
+         # Town_Code = factor(Town_Code),
          Apartments = factor(Apartments),
-         `Wall Material` = factor(`Wall Material`),
-         `Roof Material` = factor(`Roof Material`),
+         Wall_Material = factor(Wall_Material),
+         Roof_Material = factor(Roof_Material),
          Basement = factor(Basement),
-         `Basement Finish` = factor(`Basement Finish`),
-         `Central Heating` = factor(`Central Heating`),
-         `Other Heating` = factor(`Other Heating`),
-         `Central Air` = factor(`Central Air`),
-         `Attic Type` = factor(`Attic Type`),
-         `Attic Finish` = factor(`Attic Finish`),
-         `Design Plan` = factor(`Design Plan`),
-         `Cathedral Ceiling`= factor(`Cathedral Ceiling`),
+         Basement_Finish = factor(Basement_Finish),
+         Central_Heating = factor(Central_Heating),
+         Other_Heating = factor(Other_Heating),
+         Central_Air = factor(Central_Air),
+         Attic_Type = factor(Attic_Type),
+         Attic_Finish = factor(Attic_Finish),
+         Design_Plan = factor(Design_Plan),
+         Cathedral_Ceiling = factor(Cathedral_Ceiling),
          `Construction Quality` = factor(`Construction Quality`),
          `Site Desirability` = factor(`Site Desirability`),
-         `Garage 1 Size` = factor(`Garage 1 Size`),
-         `Garage 1 Material` = factor(`Garage 1 Material`),
-         `Garage 1 Attachment` = factor(`Garage 1 Attachment`),
-         `Garage 1 Area` = factor(`Garage 1 Area`),
-         `Garage 2 Size` = factor(`Garage 2 Size`),
-         `Garage 2 Material` = factor(`Garage 2 Material`),
-         `Garage 2 Attachment` = factor(`Garage 2 Attachment`),
-         `Garage 2 Area` = factor(`Garage 2 Area`),
+         Garage_1_Size = factor(Garage_1_Size),
+         Garage_1_Material = factor(Garage_1_Material),
+         Garage_1_Attachment = factor(Garage_1_Attachment),
+         Garage_1_Area = factor(Garage_1_Area),
+         Garage_2_Size = factor(Garage_2_Size),
+         Garage_2_Material = factor(Garage_2_Material),
+         Garage_2_Attachment = factor(Garage_2_Attachment),
+         Garage_2_Area = factor(Garage_2_Area),
          Porch = factor(Porch),
-         `Other Improvements` = factor(`Other Improvements`),
-         `Repair Condition` = factor(`Repair Condition`),
-         `Multi Code` = factor(`Multi Code`),
-         `Multi Property Indicator` = factor(`Multi Property Indicator`),
-         `Modeling Group` = factor(`Modeling Group`),
+         Other_Improvements = factor(Other_Improvements),
+         Repair_Condition = factor(Repair_Condition),
+         Multi_Code = factor(Multi_Code),
+         Multi_Property_Indicator = factor(Multi_Property_Indicator),
+         Modeling_Group = factor(Modeling_Group),
          Use = factor(Use),
-         `O'Hare Noise` = factor(`O'Hare Noise`),
+         OHare_Noise = factor(OHare_Noise),
          Floodplain = factor(Floodplain),
-         `Road Proximity` = factor(`Road Proximity`),
-         #`Sale Year` = factor(`Sale Year`),
-         #`Sale Quarter` = factor(`Sale Quarter`),
-         #`Sale Half-Year` = factor(`Sale Half-Year`),
-         `Sale Quarter of Year` = factor(`Sale Quarter of Year`),
-         #`Sale Month of Year` = factor(`Sale Month of Year`),
-         `Sale Half of Year` = factor(`Sale Half of Year`),
-         `Most Recent Sale` = factor(`Most Recent Sale`),
-         `Pure Market Filter` = factor(`Pure Market Filter`),
-         `Garage Indicator` = factor(`Garage Indicator`),
-         #`Town and Neighborhood` = factor(`Town and Neighborhood`)
-         )
+         Road_Proximity = factor(Road_Proximity),
+         # Sale_Year = factor(Sale_Year),
+         # Sale_Quarter = factor(Sale_Quarter),
+         # Sale_Half_Year = factor(Sale_Half_Year),
+         Sale_Quarter_of_Year = factor(Sale_Quarter_of_Year),
+         # Sale_Month_of_Year = factor(Sale_Month_of_Year),
+         Sale_Half_of_Year = factor(Sale_Half_of_Year),
+         Most_Recent_Sale = factor(Most_Recent_Sale),
+         Pure_Market_Filter = factor(Pure_Market_Filter),
+         Garage_Indicator = factor(Garage_Indicator)
+         # Town_and_Neighborhood = factor(Town_and_Neighborhood)
+  )
 
 
 # Checking which columns will throw errors when trying to fit models
@@ -155,7 +104,8 @@ data <- data |> select(-c(`Construction Quality`,
                           `Deed No.`,
                           `Neigborhood Code (mapping)`,
                           `Modeling Group`,
-                          Use))
+                          Use,
+                          PIN))
 
 
 # If we think the data has been cleaned enough
@@ -172,7 +122,7 @@ data <- read_csv("data_cleaned.csv")
 # so it is trying to fit models with like a shit ton of levels.
 
 # Splitting data into training and testing sets
-set.seed(123)
+set.seed(42069)
 train = sample(1:dim(data)[1], 0.8*dim(data)[1])
 test <- -train
 data.train <- data[train,]
@@ -212,6 +162,49 @@ predict(data.fit.lasso, s = data.bestlam.lasso, type = "coefficients")
 
 mean((data.pred.lasso - data.test$`Sale Price`)^2)
 
+# fitting models on data without any predictors recoded as factors
+
+# Splitting data into training and testing sets
+set.seed(42069)
+train = sample(1:dim(data_nofactors)[1], 0.8*dim(data_nofactors)[1])
+test <- -train
+data.train <- data_nofactors[train,]
+data.test <- data_nofactors[test,]
+
+# Fitting Lasso and Ridge Regression models
+
+data.train.mat <- model.matrix(Sale_Price ~. -Sell_Date , data = data.train)[,-1]
+data.test.mat <- model.matrix(Sale_Price ~. -Sell_Date, data = data.test)[,-1]
+
+# Fitting Ridge Regression model
+
+data.fit.ridge <- glmnet(data.train.mat, data.train$`Sale Price`, alpha = 0)
+data.cv.ridge <- cv.glmnet(data.train.mat, data.train$`Sale Price`, alpha = 0) 
+data.bestlam.ridge <- data.cv.ridge$lambda.min
+data.bestlam.ridge
+
+data.pred.ridge <- predict(data.fit.ridge, s = data.bestlam.ridge, newx = data.test.mat)
+## Coefficients of Ridge Regression
+predict(data.fit.ridge, s = data.bestlam.ridge, type = "coefficients")
+
+## Calculate MSE
+mean((data.pred.ridge - data.test$`Sale Price`)^2)
+
+# Fitting Lasso Regression model
+
+data.fit.lasso <- glmnet(data.train.mat, data.train$`Sale Price`, alpha = 1)
+data.cv.lasso <- cv.glmnet(data.train.mat, data.train$`Sale Price`, alpha = 1, nfolds = 5)
+data.bestlam.lasso <- data.cv.lasso$lambda.min
+data.bestlam.lasso
+
+data.pred.lasso <- predict(data.fit.lasso, s = data.bestlam.lasso, newx = data.test.mat)
+## Coefficients of Lasso Regression
+predict(data.fit.lasso, s = data.bestlam.lasso, type = "coefficients")
+
+## Calculate MSE
+
+mean((data.pred.lasso - data.test$Sale_Price)^2)
+
 
 ## Putting Stuff on the map
 library(sf)
@@ -222,10 +215,8 @@ library(ggdark)
 cook_map <- map_data('county', 'illinois') |> filter(subregion == 'cook')
 map1 <- ggplot(cook_map, aes(long, lat)) +
   geom_polygon(fill = "white", colour = "black") + 
-  geom_point(data = data, aes(x = Longitude, y = Latitude, color = factor(`Property Class`)), size = 0.025)+
-  coord_quickmap()+
-  theme_solid()
-
+  geom_point(data = data, aes(x = Longitude, y = Latitude, color = factor(Property_Class)), size = 0.025)+
+  coord_quickmap()
 map2<- ggplot(cook_map, aes(long, lat)) +
   geom_polygon(fill = "white", colour = "black") + 
   geom_point(data = data, aes(x = Longitude, y = Latitude, color = `Sale Price`), size = 0.025)+
@@ -252,11 +243,33 @@ County_Overlay <- leaflet() |>
   addTiles() |>
   #addProviderTiles(providers$Esri.WorldImagery) |>
   setView(lng = mean(data$Longitude), lat = mean(data$Latitude), zoom = 10) |>
-  addPolygons(data = cook_overlay, color = "blue", stroke = 1, opacity = 0.8) #|>
+  addPolygons(data = cook_overlay, color = "blue", stroke = 1, opacity = 0.25) #|>
   addMarkers(lng = data$Longitude, lat = data$Latitude, group = 'Properties')
 
 
 County_Overlay
 
 
-addMarkers(map = County_Overlay, lng = data$Longitude, lat = data$Latitude, group = 'Properties')
+addMarkers(map = County_Overlay, lng = data$Longitude[1:100], lat = data$Latitude[1:100], group = 'Properties')
+addMarkers(map = County_Overlay, lng = data$Longitude[1:(length(data$Longitude)/10)], lat = data$Latitude[1:(length(data$Latitude)/10)])
+
+addCircleMarkers(map = County_Overlay,lng = data$Longitude[1:(length(data$Longitude)/10)], lat = data$Latitude[1:(length(data$Latitude)/10)], radius = 0.1, group = 'Properties')
+
+Sat_Map_Sale_Price_Cook_Overlay <- ggmap(Map, darken = c(0.1, "white")) +
+    geom_polygon(data = cook_map, aes(x = long, y = lat), fill = NA, color = "orange")+
+    #geom_sf(data = cook_map2, inherit.aes = FALSE)+
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = Sale_Price), 
+                size = 0.02, 
+                alpha = 0.75) +
+    scale_color_gradient(low = "#6fe7f7", high = "#890000") +
+    labs(x = "Longitude", y = "Latitude", color = "Sale Price ($)")
+
+
+Sat_Map_Sale_Price_Cook_Overlay
+
+
+csf <- coord_sf()
+csf$default <- TRUE
