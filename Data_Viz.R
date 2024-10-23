@@ -64,44 +64,6 @@ ggsave(SP_vs_Lot_Building_Size,
     units = 'px',
     scale = 2)
 
-# Sale_Price against Design Variables
-Design_Var_GGPairs = data %>%
-    dplyr::select(`Sale_Price`, 
-                `Property_Class`,
-                `Apartments`,
-                `Basement`,
-                `Attic_Type`,
-                `Design_Plan`,
-                `Cathedral_Ceiling`) %>%
-    GGally::ggpairs()
-
-ggsave(Design_Var_GGPairs,
-    filename = "Figures/Design_Variable_GGPairs.png",
-    width = 1200,
-    height = 1200,
-    units = 'px',
-    scale = 2)
-
-# Sale_Price against Garage Variables
-Garage_GGPairs = data %>%
-    dplyr::select(`Sale_Price`,
-                `Garage_1_Size`,
-                `Garage_1_Material`,
-                `Garage_1_Attachment`,
-                `Garage_1_Area`,
-                `Garage_2_Size`,
-                `Garage_2_Material`,
-                `Garage_2_Attachment`,
-                `Garage_2_Area`) %>%
-    GGally::ggpairs()
-
-ggsave(Garage_GGPairs,
-    filename = "Figures/Garage_GGPairs.png",
-    width = 1200,
-    height = 1200,
-    units = 'px',
-    scale = 2)
-
 # Spatial Map
 
 register_google(key = "AIzaSyCnq3okTIRjxfQ0wHWGyu08HGCrFtIQo4M", write = TRUE)
@@ -124,6 +86,91 @@ Sat_Map = ggmap(Map, darken = c(0.1, "white")) +
 ggsave(Sat_Map,
     filename = "Figures/Sat_Map.png",
     height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Plotting Against Garage Variables
+Garage_Vars = data %>%
+    select(Sale_Price, 
+           Garage_1_Area, 
+           Garage_1_Size, 
+           Garage_1_Attachment, 
+           Garage_1_Material, 
+           Garage_2_Area, 
+           Garage_2_Size, 
+           Garage_2_Attachment, 
+           Garage_2_Material) %>%
+    pivot_longer(cols = 2:9, names_to = "Variable", values_to = "Value") %>%
+    ggplot(aes(x = factor(Value), y = Sale_Price, group = Value)) +
+    geom_boxplot() +
+    facet_wrap(~Variable, scales = "free_x") +
+    labs(x = " ")
+
+ggsave(Garage_Vars,
+    filename = "Figures/SP_vs_Garage_Vars.png",
+    height = 800,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Plotting Against Property Variables
+Property_Vars = data %>%
+    select(`Sale_Price`, 
+            `Property_Class`,
+            `Apartments`,
+            `Basement`,
+            `Attic_Type`,
+            `Design_Plan`,
+            `Cathedral_Ceiling`,
+            Fireplaces) %>%
+    pivot_longer(cols = 2:8, names_to = "Variable", values_to = "Value") %>%
+    ggplot(aes(x = factor(Value), y = Sale_Price, group = Value)) +
+    geom_boxplot() +
+    facet_wrap(~Variable, scales = "free_x") +
+    labs(x = " ")
+
+ggsave(Property_Vars,
+    filename = "Figures/SP_vs_Property_Vars.png",
+    height = 800,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Plotting Against Room Variables
+Room_Vars = data %>%
+    select(`Sale_Price`, 
+            `Bedrooms`,
+            `Baths`,
+            `Rooms`) %>%
+    pivot_longer(cols = 2:4, names_to = "Variable", values_to = "Value") %>%
+    ggplot(aes(x = factor(Value), y = Sale_Price, group = Value)) +
+    geom_boxplot() +
+    facet_wrap(~Variable, scales = "free_x") +
+    labs(x = " ")
+
+ggsave(Room_Vars,
+    filename = "Figures/SP_vs_Room_Vars.png",
+    height = 800,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Plotting Against Lot Variables
+Room_Vars = data %>%
+    select(`Sale_Price`, 
+            Land_Square_Feet,
+            Building_Square_Feet,
+            ) %>%
+    pivot_longer(cols = 2:4, names_to = "Variable", values_to = "Value") %>%
+    ggplot(aes(x = factor(Value), y = Sale_Price, group = Value)) +
+    geom_boxplot() +
+    facet_wrap(~Variable, scales = "free_x") +
+    labs(x = " ")
+
+ggsave(Room_Vars,
+    filename = "Figures/SP_vs_Room_Vars.png",
+    height = 800,
     width = 1200,
     units = 'px',
     scale = 2)
