@@ -101,7 +101,19 @@ data = data %>%
         Most_Recent_Sale = `Most Recent Sale`,
         Pure_Market_Filter = `Pure Market Filter`,
         Garage_Indicator = `Garage Indicator`,
-        Lot_Size = `Lot Size`)
+        Lot_Size = `Lot Size`,
+        Construction_Quality = `Construction Quality`,
+        Site_Desirability = `Site Desirability`,
+        Other_Improvements = `Other Improvements`,
+        Repair_Condition = `Repair Condition`,
+        Deed_No = `Deed No.`,
+        Census_Tract = `Census Tract`,
+        Modeling_Group = `Modeling Group`,
+        Sale_Half_of_Year = `Sale Half of Year`,
+        Age_Decade = `Age Decade`,
+        Neighborhood_Code_Mapping = `Neigborhood Code (mapping)`,
+        Town_and_Neighborhood = `Town and Neighborhood`,
+        )
 
 # Save cleaned data
 write_csv(data, "data_cleaned.csv")
