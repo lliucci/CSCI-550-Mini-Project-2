@@ -150,8 +150,8 @@ data_nofactors <- data |> select(-c(Modeling_Group,Use,PIN, Other_Improvements))
 # Converting Columns into factors with levels
 data <- data |> 
   mutate(Property_Class = factor(Property_Class),
-         # Neighborhood_Code = factor(Neighborhood_Code),
-         # Town_Code = factor(Town_Code),
+         Neighborhood_Code = factor(Neighborhood_Code),
+         Town_Code = factor(Town_Code),
          Apartments = factor(Apartments),
          Wall_Material = factor(Wall_Material),
          Roof_Material = factor(Roof_Material),
@@ -180,7 +180,7 @@ data <- data |>
          Multi_Code = factor(Multi_Code),
          Multi_Property_Indicator = factor(Multi_Property_Indicator),
          Modeling_Group = factor(Modeling_Group),
-         Use = factor(Use),
+        #  Use = factor(Use),
          OHare_Noise = factor(OHare_Noise),
          Floodplain = factor(Floodplain),
          Road_Proximity = factor(Road_Proximity),
@@ -192,13 +192,70 @@ data <- data |>
          Sale_Half_of_Year = factor(Sale_Half_of_Year),
          Most_Recent_Sale = factor(Most_Recent_Sale),
          Pure_Market_Filter = factor(Pure_Market_Filter),
-         Garage_Indicator = factor(Garage_Indicator)
+         Garage_Indicator = factor(Garage_Indicator),
+         Fireplaces = factor(Fireplaces),
+         Number_of_Commercial_Units = factor(Number_of_Commercial_Units),
+         Area = factor(Area),
+         Sub_Area = factor(Sub_Area),
+         Block = factor(Block),
+         Parcel = factor(Parcel),
+         Multicode = factor(Multicode)
          # Town_and_Neighborhood = factor(Town_and_Neighborhood)
   )
 
+# Subset of data for modelling variable
+Model_Data = data %>%
+    dplyr::select(-c(`...1`,
+                        PIN,
+                        Other_Improvements,
+                        Multi_Code,
+                        Deed_No,
+                        Census_Tract,
+                        Multi_Property_Indicator,
+                        Sale_Half_Year,
+                        Sale_Month_of_Year,
+                        Sale_Half_of_Year,
+                        Most_Recent_Sale,
+                        Pure_Market_Filter,
+                        Neighborhood_Code_Mapping,
+                        Town_and_Neighborhood,
+                        Sale_Quarter,
+                        Age_Decade,
+                        Neighborhood_Code,
+                        Modeling_Group,
+                        OHare_Noise,
+                        Floodplain,
+                        Road_Proximity,
+                        Use,
+                        Garage_1_Size,
+                        Garage_1_Material,
+                        Garage_1_Area,
+                        Garage_2_Size,
+                        Garage_2_Material,
+                        Garage_2_Attachment,
+                        Garage_2_Area,
+                        Sell_Date,
+                        Multicode,
+                        Block,
+                        Parcel,
+                        Sub_Area,
+                        Longitude,
+                        Latitude,
+                        Town_Code,
+                        Area,
+                        Attic_Finish,
+                        Construction_Quality))
 
-# removing data that only has one level  (and PIN)
-data <- data |> select(-c(Use, Modeling_Group ,PIN,Other_Improvements)) # removing PIN because it seems like just a different row name variable
+str(Model_Data)
+
+Model_Data = Model_Data %>%
+    mutate(Land_Square_Feet = scale(Land_Square_Feet),
+            Building_Square_Feet = scale(Building_Square_Feet),
+            Estimate_Land = scale(Estimate_Land),
+            Estimate_Building = scale(Estimate_Building),
+            Age = scale(Age),
+            Lot_Size = scale(Lot_Size)
+            )
 
 
 
@@ -206,8 +263,10 @@ data <- data |> select(-c(Use, Modeling_Group ,PIN,Other_Improvements)) # removi
 
 # Splitting data into test and training sets 
 
+data <- Model_Data
+
 set.seed(42069)
-train = sample(1:dim(data)[1], 0.8*dim(data)[1])
+train = sample(1:dim(data)[1], 0.8*dim(data)[1], replace = FALSE)
 test <- -train
 data.train <- data[train,]
 data.test <- data[test,]
@@ -493,13 +552,13 @@ AIC(lm_slr, lm_mlr, lm_nonlinear)
 
 # Lasso and Ridge Regression ---------------------------
 
-data.train.mat <- model.matrix(Sale_Price ~. -Sell_Date , data = data.train)[,-1]
-data.test.mat <- model.matrix(Sale_Price ~. -Sell_Date, data = data.test)[,-1]
+data.train.mat <- model.matrix(Sale_Price ~. , data = data.train)[,-1]
+data.test.mat <- model.matrix(Sale_Price ~., data = data.test)[,-1]
 
 # Fitting Ridge Regression model
 
 data.fit.ridge <- glmnet(data.train.mat, data.train$Sale_Price, alpha = 0)
-data.cv.ridge <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 0, nfold = 5) 
+data.cv.ridge <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 0, nfolds = 5) 
 data.bestlam.ridge <- data.cv.ridge$lambda.min
 data.bestlam.ridge
 
@@ -513,7 +572,7 @@ mean((data.pred.ridge - data.test$Sale_Price)^2)
 # Fitting Lasso Regression model
 
 data.fit.lasso <- glmnet(data.train.mat, data.train$Sale_Price, alpha = 1)
-data.cv.lasso <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 1, nfold = 5)
+data.cv.lasso <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 1, nfolds = 5)
 data.bestlam.lasso <- data.cv.lasso$lambda.min
 data.bestlam.lasso
 
@@ -526,3 +585,174 @@ predict(data.fit.lasso, s = data.bestlam.lasso, type = "coefficients")
 mean((data.pred.lasso - data.test$Sale_Price)^2)
 
 
+# Fitting models using caret
+library(caret)
+library(glmnet)
+
+train_control <- trainControl(method = "cv", 
+                              number = 5)
+
+data.train.mat <- model.matrix(Sale_Price ~. , data = data.train)[,-1]
+data.test.mat <- model.matrix(Sale_Price ~., data = data.test)[,-1]
+
+
+# fitting ridge regression model 
+tune.grid.ridge = expand.grid(alpha = 0,
+                           lambda = glmnet(data.train.mat,
+                                    data.train$Sale_Price, 
+                                    alpha = 0)$lambda)
+fit.ridge <- train(Sale_Price ~ ., data = data.train,
+  method = 'glmnet',
+  trControl = train_control,
+  tuneGrid = tune.grid.ridge)
+
+print(fit.ridge)
+
+# fitting the model on the test data
+ridge_pred <- predict(fit.ridge, data.test)
+print(paste("MSE from Test Set: ", Metrics::mse(ridge_pred, data.test$Sale_Price)))
+# model coefficients
+coef(fit.ridge$finalModel, s = fit.ridge$bestTune$lambda)
+
+
+
+# fitting lasso regression model
+tune.grid.lasso = expand.grid(alpha = 1,
+                           lambda = glmnet(data.train.mat,
+                                    data.train$Sale_Price,
+                                    alpha = 1)$lambda)
+fit.lasso <- train(Sale_Price ~., data = data.train,
+  method = 'glmnet',
+  trControl = train_control,
+  tuneGrid = tune.grid.lasso)
+
+print(fit.lasso)
+# Fitting the model on our test data
+lasso_pred <- predict(fit.lasso, data.test)
+print(paste("MSE from Test Set: ", Metrics::mse(lasso_pred, data.test$Sale_Price)))
+# model coefficients
+coef(fit.lasso$finalModel, s = fit.lasso$bestTune$lambda)
+
+
+
+
+
+
+
+
+
+## Comparisons with caret and glmnet for fitting the two models.
+
+data.train.mat <- model.matrix(Sale_Price ~. , data = data.train)[,-1]
+data.test.mat <- model.matrix(Sale_Price ~., data = data.test)[,-1]
+
+
+train_control <- trainControl(method = "cv", 
+                              number = 5)
+
+grid = 10 ^ seq(5, -2, length = 100)
+
+#### Ridge - Caret
+
+# fitting ridge regression model 
+tune.grid.ridge = expand.grid(lambda = grid, alpha = 0)
+fit.ridge <- train(Sale_Price ~ ., data = data.train,
+  method = 'glmnet',
+  trControl = train_control,
+  tuneGrid = data.frame(alpha = 0))
+
+fit.ridge$bestTune
+
+fit.ridge <- train(Sale_Price ~ ., data = data.train,
+  method = 'glmnet',
+  trControl = train_control,
+  tuneGrid = expand.grid(lambda = fit.ridge$finalModel$lambdaOpt, alpha = 0))
+
+print(fit.ridge)
+
+ridge_pred <- predict(fit.ridge, data.test)
+print(paste("MSE from Test Set: ", Metrics::mse(ridge_pred, data.test$Sale_Price)))
+
+#### Ridge - glmnet
+
+# Fitting Ridge Regression model
+
+data.fit.ridge <- glmnet(data.train.mat, data.train$Sale_Price, alpha = 0)
+data.cv.ridge <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 0, nfolds = 5) 
+data.bestlam.ridge <- data.cv.ridge$lambda.min
+data.bestlam.ridge
+
+data.pred.ridge <- predict(data.fit.ridge, s = data.bestlam.ridge, newx = data.test.mat)
+## Coefficients of Ridge Regression
+predict(data.fit.ridge, s = data.bestlam.ridge, type = "coefficients")
+
+## Calculate MSE
+mean((data.pred.ridge - data.test$Sale_Price)^2)
+#### Comparison with best lambda choice and mse
+
+## Caret
+fit.ridge$bestTune$lambda
+print(paste("MSE from Test Set: ", Metrics::mse(ridge_pred, data.test$Sale_Price)))
+
+## glmnet
+data.bestlam.ridge
+mean((data.pred.ridge - data.test$Sale_Price)^2)
+
+
+### direct comparison
+fit.ridge$bestTune$lambda == data.bestlam.ridge
+
+Metrics::mse(ridge_pred, data.test$Sale_Price) == mean((data.pred.ridge - data.test$Sale_Price)^2)
+
+
+
+
+## Lasso
+
+#### Lasso caret
+tune.grid.lasso = expand.grid(lambda = grid, alpha = 1)
+fit.lasso <- train(Sale_Price ~., data = data.train,
+  method = 'glmnet',
+  trControl = train_control,
+  tuneGrid = tune.grid.lasso)
+
+fit.lasso <-train(Sale_Price ~ ., data = data.train,
+    method = 'glmnet',
+    trControl = train_control,
+    tuneGrid = expand.grid(lambda = fit.lasso$finalModel$lambda, alpha = 1))
+
+print(fit.lasso)
+
+lasso_pred <- predict(fit.lasso, data.test)
+print(paste("MSE from Test Set: ", Metrics::mse(lasso_pred, data.test$Sale_Price)))
+
+#### Lasso glmnet
+
+data.fit.lasso <- glmnet(data.train.mat, data.train$Sale_Price, alpha = 1)
+data.cv.lasso <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 1, nfolds = 5)
+data.bestlam.lasso <- data.cv.lasso$lambda.min
+data.bestlam.lasso
+
+data.pred.lasso <- predict(data.fit.lasso, s = data.bestlam.lasso, newx = data.test.mat)
+## Coefficients of Lasso Regression
+predict(data.fit.lasso, s = data.bestlam.lasso, type = "coefficients")
+
+## Calculate MSE
+
+mean((data.pred.lasso - data.test$Sale_Price)^2)
+
+### Comparison of best lambda choice and mse
+
+##### Caret
+
+fit.lasso$bestTune$lambda
+print(paste("MSE from Test Set: ", Metrics::mse(lasso_pred, data.test$Sale_Price)))
+
+##### glmnet
+data.bestlam.lasso
+mean((data.pred.lasso - data.test$Sale_Price)^2)
+
+###### Direct comparison
+
+fit.lasso$bestTune$lambda == data.bestlam.lasso
+mean((data.pred.lasso - data.test$Sale_Price)^2) == Metrics::mse(lasso_pred, data.test$Sale_Price)
