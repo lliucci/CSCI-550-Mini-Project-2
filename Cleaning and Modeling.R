@@ -5,7 +5,7 @@ library(glmnet)
 library(lubridate)
 library(mosaic)
 library(ggthemes)
-
+library(leaps)
 conflicted::conflicts_prefer(dplyr::filter(),dplyr::lag(), base::sample(), base::mean())
 
 ## Reading Data
@@ -143,7 +143,7 @@ data <- read_csv("data_cleaned.csv")
 
 # data no factors, removing predictors that will not have any predictive power/will not work with model.matrix
 
-data_nofactors <- data |> select(-c(Modeling_Group,Use,PIN))
+data_nofactors <- data |> select(-c(Modeling_Group,Use,PIN, Other_Improvements))
 
 # Making some of the variable factors
 
@@ -198,7 +198,7 @@ data <- data |>
 
 
 # removing data that only has one level  (and PIN)
-data <- data |> select(-c(Use, Modeling_Group ,PIN)) # removing PIN because it seems like just a different row name variable
+data <- data |> select(-c(Use, Modeling_Group ,PIN,Other_Improvements)) # removing PIN because it seems like just a different row name variable
 
 
 
@@ -217,7 +217,7 @@ lm_slr = lm(Sale_Price ~ Age, data = data)
 summary(lm_slr)
 lm_slr_land_size <- lm(Sale_Price~ Land_Square_Feet, data = data)
 summary(lm_slr_land_size)
-lm_slr_build_size <- lm(Sale_Price~Land_Square_Feet, data = data)
+lm_slr_build_size <- lm(Sale_Price~Building_Square_Feet, data = data)
 summary(lm_slr_build_size)
 
 
@@ -229,7 +229,15 @@ summary(lm_mlr)
 lm_longlat<- lm(Sale_Price ~ Longitude + Latitude  + Longitude * Latitude, data = data)
 summary(lm_longlat)
 
+# Best subsets
+# has to fit approx 2^62 models
+
+
+lm_best_subset =  regsubsets(Sale_Price ~ . ,data = data)
+summary(lm_best_subset)
+
 # Stepwise Regression - Backward Selection and Hybrid Selection
+# has to fit approx 62^2 different models
 
 lm_step_back <- lm(Sale_Price ~. , data = data)
 lm_step_back <- step(lm_step_back, direction = "back", trace = 0)
@@ -371,9 +379,9 @@ summary(lm_step_hybrid)
 #Other_Improvements35        5.931e+03  2.299e+04   0.258 0.796411    
 #Other_Improvements36        4.913e+04  2.719e+04   1.807 0.070756 .  
 #Other_Improvements37        1.075e+04  2.245e+04   0.479 0.632239    
-3Other_Improvements38        2.534e+04  2.921e+04   0.868 0.385651    
+#Other_Improvements38        2.534e+04  2.921e+04   0.868 0.385651    
 #Other_Improvements39       -2.863e+04  4.710e+04  -0.608 0.543299    
-3Other_Improvements40        3.428e+04  2.632e+04   1.302 0.192828    
+#Other_Improvements40        3.428e+04  2.632e+04   1.302 0.192828    
 #Other_Improvements41       -5.105e+03  1.505e+04  -0.339 0.734435    
 #Other_Improvements42        2.317e+04  2.815e+04   0.823 0.410480    
 #Other_Improvements43        1.610e+04  3.723e+04   0.432 0.665389    
@@ -385,7 +393,7 @@ summary(lm_step_hybrid)
 #Other_Improvements49       -7.258e+03  2.196e+04  -0.331 0.740997    
 #Other_Improvements50        9.309e+03  1.891e+04   0.492 0.622574    
 #Other_Improvements51        2.609e+04  2.027e+04   1.287 0.197979    
-3Other_Improvements52       -4.156e+04  1.834e+04  -2.266 0.023423 *  
+#Other_Improvements52       -4.156e+04  1.834e+04  -2.266 0.023423 *  
 #  Other_Improvements53        4.018e+04  3.330e+04   1.207 0.227566    
 #Other_Improvements54        6.081e+03  2.554e+04   0.238 0.811833    
 #Other_Improvements55       -7.997e+04  5.265e+04  -1.519 0.128743    
@@ -491,7 +499,7 @@ data.test.mat <- model.matrix(Sale_Price ~. -Sell_Date, data = data.test)[,-1]
 # Fitting Ridge Regression model
 
 data.fit.ridge <- glmnet(data.train.mat, data.train$Sale_Price, alpha = 0)
-data.cv.ridge <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 0) 
+data.cv.ridge <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 0, nfold = 5) 
 data.bestlam.ridge <- data.cv.ridge$lambda.min
 data.bestlam.ridge
 
@@ -505,7 +513,7 @@ mean((data.pred.ridge - data.test$Sale_Price)^2)
 # Fitting Lasso Regression model
 
 data.fit.lasso <- glmnet(data.train.mat, data.train$Sale_Price, alpha = 1)
-data.cv.lasso <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 1)
+data.cv.lasso <- cv.glmnet(data.train.mat, data.train$Sale_Price, alpha = 1, nfold = 5)
 data.bestlam.lasso <- data.cv.lasso$lambda.min
 data.bestlam.lasso
 
