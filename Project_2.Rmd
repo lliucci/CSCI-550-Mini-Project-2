@@ -33,24 +33,61 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(ggmap)
 library(sf)
+library(caret)
 theme_set(theme_bw())
 
 # Data Reading
 data = read_csv("data_cleaned.csv")
 
-data = data %>%
-    mutate(Baths = factor(Baths),
-            Rooms = factor(Rooms),
-            Bedrooms = factor(Bedrooms),
-            Sale_Year = factor(`Sale_Year`),
-            `Property_Class` = factor(`Property_Class`),
-            Apartments = factor(Apartments),
-            Basement = factor(Basement),
-            `Attic_Type` = factor(`Attic_Type`),
-            `Design_Plan` = factor(`Design_Plan`),
-            `Cathedral_Ceiling` = factor(`Cathedral_Ceiling`),
-            Fireplaces = factor(Fireplaces),
-            Porch = factor(Porch))
+# Converting Columns into factors with levels
+data <- data %>%
+  mutate(Property_Class = factor(Property_Class),
+         Neighborhood_Code = factor(Neighborhood_Code),
+         Town_Code = factor(Town_Code),
+         Apartments = factor(Apartments),
+         Wall_Material = factor(Wall_Material),
+         Roof_Material = factor(Roof_Material),
+         Basement = factor(Basement),
+         Basement_Finish = factor(Basement_Finish),
+         Central_Heating = factor(Central_Heating),
+         Other_Heating = factor(Other_Heating),
+         Central_Air = factor(Central_Air),
+         Attic_Type = factor(Attic_Type),
+         Attic_Finish = factor(Attic_Finish),
+         Design_Plan = factor(Design_Plan),
+         Cathedral_Ceiling = factor(Cathedral_Ceiling),
+         Construction_Quality = factor(Construction_Quality),
+         Site_Desirability = factor(Site_Desirability),
+         Garage_1_Size = factor(Garage_1_Size),
+         Garage_1_Material = factor(Garage_1_Material),
+         Garage_1_Attachment = factor(Garage_1_Attachment),
+         Garage_1_Area = factor(Garage_1_Area),
+         Garage_2_Size = factor(Garage_2_Size),
+         Garage_2_Material = factor(Garage_2_Material),
+         Garage_2_Attachment = factor(Garage_2_Attachment),
+         Garage_2_Area = factor(Garage_2_Area),
+         Porch = factor(Porch),
+         Other_Improvements = factor(Other_Improvements),
+         Repair_Condition = factor(Repair_Condition),
+         Multi_Code = factor(Multi_Code),
+         Multi_Property_Indicator = factor(Multi_Property_Indicator),
+         OHare_Noise = factor(OHare_Noise),
+         Floodplain = factor(Floodplain),
+         Road_Proximity = factor(Road_Proximity),
+         Sale_Quarter_of_Year = factor(Sale_Quarter_of_Year),
+         Sale_Half_of_Year = factor(Sale_Half_of_Year),
+         Most_Recent_Sale = factor(Most_Recent_Sale),
+         Pure_Market_Filter = factor(Pure_Market_Filter),
+         Garage_Indicator = factor(Garage_Indicator),
+         Fireplaces = factor(Fireplaces),
+         Number_of_Commercial_Units = factor(Number_of_Commercial_Units),
+         Area = factor(Area),
+         Sub_Area = factor(Sub_Area),
+         Block = factor(Block),
+         Parcel = factor(Parcel),
+         Multicode = factor(Multicode)
+  )
+
 
 # Setting up for spatial plots
 register_google(key = "AIzaSyCnq3okTIRjxfQ0wHWGyu08HGCrFtIQo4M", write = TRUE)
@@ -71,7 +108,7 @@ cook_map <- map_data('county', 'illinois') |> filter(subregion == 'cook')
 
 ## Data Cleaning
 
-The data received had a few issues that needed to be dealt with. First of all, the `Description` variable contained pieces of key information that were extracted (number of bathrooms, number of bedrooms, total number of rooms, and sell date). 
+The data received had a few issues that needed to be dealt with. First of all, the `Description` variable contained pieces of key information that were extracted (number of bathrooms, number of bedrooms, total number of rooms, and sell date). Additionally, Area, Sub-Area, Block, Parcel, and Multicode were parsed from the `PIN` variable.
 
 ```{r}
 # Extracting important information from descriptions
@@ -82,18 +119,15 @@ baths = as.numeric(0)
 
 # Takes a minute to run, not too bad though
 for(i in 1:nrow(data)){
-    sell_date[i] = str_split(
-        str_split(data$Description[i], "sold on ")[[1]][2],
-         ", is a")[[1]][1]
-    rooms[i] = str_extract_all(
-        str_split(data$Description[i], "total of ")[[1]][2],
-         "\\d")[[1]][1]
-    bedrooms[i] = str_extract_all(
-        str_split(data$Description[i], "total of ")[[1]][2],
-         "\\d")[[1]][2]
-    baths[i] = str_split(
-        str_split(data$Description[i], "bedrooms, and ")[[1]][2],
-         " of which are bathrooms")[[1]][1]
+    sell_date[i] = str_split(str_split(data$Description[i], "sold on ")[[1]][2], ", is a")[[1]][1]
+    rooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][1]
+    bedrooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][2]
+    baths[i] = str_split(str_split(data$Description[i], "bedrooms, and ")[[1]][2], " of which are bathrooms")[[1]][1]
+    Area[i] = substring(data$PIN[i], first = 1, last = 2)
+    Sub_Area[i] = substring(data$PIN[i], first = 3, last = 4)
+    Block[i] = substring(data$PIN[i], first = 5, last = 6)
+    Parcel[i] = substring(data$PIN[i], 7, 8)
+    Multicode[i] = substring(data$PIN[i], 9, 12)
 }
 ```
 
@@ -264,3 +298,136 @@ From the exploration performed above, we hypothesize that building square footag
 
 # Model Development and Performance Evaluation
 
+Before starting the modelling process, variables were factored (if categorical) or scaled to have mean of 0 and variance 1 (if quantitative). This ensured that models had the best chance of converging. Additionally, some variables were removed due to having only 1 value or being of no importance.
+
+```{r eval = T}
+# Scaling numeric variable
+Model_Data = data %>%
+    select(-c(Modeling_Group,
+            Age,
+            Use,
+            Sale_Half_of_Year,
+            `...1`,
+            PIN,
+            Census_Tract,
+            Deed_No,
+            Town_and_Neighborhood,
+            Neighborhood_Code_Mapping)) %>%
+    mutate(Land_Square_Feet = scale(Land_Square_Feet),
+            Building_Square_Feet = scale(Building_Square_Feet),
+            Estimate_Land = scale(Estimate_Land),
+            Estimate_Building = scale(Estimate_Building),
+            Lot_Size = scale(Lot_Size))
+
+# Adding polynomial terms for later use
+poly_predictors = data.frame(poly(Model_Data$Estimate_Building, 4))
+
+poly_predictors %>% head()
+
+Polynomial_Data = poly_predictors %>%
+    rename(Poly_1 = X1,
+           Poly_2 = X2,
+           Poly_3 = X3,
+           Poly_4 = X4) %>%
+    bind_cols(Model_Data)
+```
+
+At this point, the data were split into training and testing sets by randomly sampling 80% of the rows for the training set and leaving the remaining rows for the testing set.
+
+```{r}
+# Sampling rows at random
+ids_train = sample(1:nrow(Model_Data), 
+                size = round(0.8*nrow(Model_Data)), 
+                replace = FALSE)
+
+# Splitting data
+train = Model_Data[ids_train,]
+test = Model_Data[-ids_train,]
+```
+
+To find the best Simple Linear Regression model, all single predictor models were searched and compared on AIC. The top-performing model involved the predictor `Estimate_Building` to predict sale price. A summary of the model fit using K-fold cross-validation is shown below. Note that the $R^2$ indicates fairly poor model fit, but this is to be expected as it is only a single predictor.
+
+```{r eval = T}
+# Define cross-validation method with 5 folds
+train_control <- trainControl(method = "cv", 
+                              number = 5)
+ 
+ 
+# Build model using linear model
+slr <- train(Sale_Price~Estimate_Building, data = train, 
+               trControl = train_control, 
+               method = "lm")
+
+# Summary of model
+print(slr)
+
+slr_preds = predict(slr, test)
+print(paste("MSE from Test Set: ", Metrics::mse(slr_preds, test$Sale_Price)))
+```
+
+To find the best Multiple Linear Regression model, we used all available predictors with no interactions. Note that no model summary .
+
+```{r eval = T}
+
+mlr <- train(Sale_Price~., data = train, 
+               trControl = train_control, 
+               method = "lm")
+
+print(mlr)
+
+mlr_preds = predict(mlr, test)
+print(paste("MSE from Test Set: ", Metrics::mse(mlr_preds, test$Sale_Price)))
+```
+
+```{r eval = T}
+# Calculating principle components using numeric data
+numeric_data = Model_Data %>% select_if(is.numeric) %>% select(-Sale_Price)
+PCs = prcomp(numeric_data)
+
+# Determining how many PCs to use
+PCs$sdev^2/sum(PCs$sdev^2)
+
+# Obtain first principle component as data
+PC_data = data.frame(PCs$x[,1])
+
+# Convert into data frame, adding response
+PC_data = bind_cols(PC_data, data.frame(Sale_Price = Model_Data$Sale_Price))
+
+# Split into test and train
+PC_train = PC_data[ids_train,]
+PC_test = PC_data[-ids_train,]
+
+# train model with k-fold cv
+pc_slr <- train(Sale_Price~., data = PC_train, 
+               trControl = train_control, 
+               method = "lm")
+
+# display model
+print(pc_slr)
+
+# predict to test data
+pc_slr_preds = predict(pc_slr, PC_test)
+print(paste("MSE from Test Set: ", Metrics::mse(pc_slr_preds, PC_test$Sale_Price)))
+
+# Loadings from first PC
+PCs$rotation[,1]
+```
+
+```{r eval = T}
+poly_train = Polynomial_Data[ids_train,]
+poly_test = Polynomial_Data[-ids_train,]
+
+# Training 5th degree polynomial
+poly_slr = train(Sale_Price ~ Poly_1 + Poly_2 + Poly_3 + Poly_4, 
+                data = poly_train,
+                trControl = train_control,
+                method = 'lm')
+
+
+# Summary of model
+print(poly_slr)
+
+# Predicting and Calculating MSE
+poly_slr_preds = predict(poly_slr, poly_test, type = 'raw')
+print(paste("MSE from Test Set: ", Metrics::mse(poly_slr_preds, poly_test$Sale_Price)))
+```
