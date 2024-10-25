@@ -6,7 +6,6 @@ library(mosaic)
 ## Reading Data
 data = read_csv("cook_county_train_val.csv")
 
-
 ## Descriptions Variable fixing
 
 # Extracting important information from descriptions

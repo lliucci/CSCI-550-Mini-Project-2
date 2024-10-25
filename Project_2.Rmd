@@ -300,7 +300,7 @@ From the exploration performed above, we hypothesize that building square footag
 
 Before starting the modelling process, variables were factored (if categorical) or scaled to have mean of 0 and variance 1 (if quantitative). This ensured that models had the best chance of converging. Additionally, some variables were removed due to having only 1 value or being of no importance.
 
-```{r eval = T}
+```{r ModelData, eval = T}
 # Scaling numeric variable
 Model_Data = data %>%
     select(-c(Modeling_Group,
@@ -318,23 +318,11 @@ Model_Data = data %>%
             Estimate_Land = scale(Estimate_Land),
             Estimate_Building = scale(Estimate_Building),
             Lot_Size = scale(Lot_Size))
-
-# Adding polynomial terms for later use
-poly_predictors = data.frame(poly(Model_Data$Estimate_Building, 4))
-
-poly_predictors %>% head()
-
-Polynomial_Data = poly_predictors %>%
-    rename(Poly_1 = X1,
-           Poly_2 = X2,
-           Poly_3 = X3,
-           Poly_4 = X4) %>%
-    bind_cols(Model_Data)
 ```
 
 At this point, the data were split into training and testing sets by randomly sampling 80% of the rows for the training set and leaving the remaining rows for the testing set.
 
-```{r}
+```{r TrainTestSplit, eval = T}
 # Sampling rows at random
 ids_train = sample(1:nrow(Model_Data), 
                 size = round(0.8*nrow(Model_Data)), 
@@ -347,7 +335,7 @@ test = Model_Data[-ids_train,]
 
 To find the best Simple Linear Regression model, all single predictor models were searched and compared on AIC. The top-performing model involved the predictor `Estimate_Building` to predict sale price. A summary of the model fit using K-fold cross-validation is shown below. Note that the $R^2$ indicates fairly poor model fit, but this is to be expected as it is only a single predictor.
 
-```{r eval = T}
+```{r SLR, eval = T}
 # Define cross-validation method with 5 folds
 train_control <- trainControl(method = "cv", 
                               number = 5)
@@ -365,30 +353,38 @@ slr_preds = predict(slr, test)
 print(paste("MSE from Test Set: ", Metrics::mse(slr_preds, test$Sale_Price)))
 ```
 
-To find the best Multiple Linear Regression model, we used all available predictors with no interactions. Note that no model summary .
+To find the best Multiple Linear Regression model, we used all available predictors with no interactions. A summary of the cross-validation process is provided. Then, we predicted to the test data and calculated the mean squared error.
 
-```{r eval = T}
-
+```{r MLR, eval = T}
+# Train mly model using k-fold cross validation
 mlr <- train(Sale_Price~., data = train, 
                trControl = train_control, 
                method = "lm")
 
+# Print model specifications
 print(mlr)
 
+# Predict to test data
 mlr_preds = predict(mlr, test)
 print(paste("MSE from Test Set: ", Metrics::mse(mlr_preds, test$Sale_Price)))
 ```
 
-```{r eval = T}
+For the model using principle components, we first selected all numeric variables except for the response and calculated the principle components. The cumulative variance is shown below, indicating that only the first principle component is needed.
+
+```{r PCs, eval = T}
 # Calculating principle components using numeric data
 numeric_data = Model_Data %>% select_if(is.numeric) %>% select(-Sale_Price)
 PCs = prcomp(numeric_data)
 
 # Determining how many PCs to use
 PCs$sdev^2/sum(PCs$sdev^2)
+```
 
+Then, a data frame is created using the first principle component's variable values. The observed response values were then binded to this data frame and the train-test splits were made again using the original training IDs. The model was trained on the training data using the 5-fold cross-validation and predictions were made on the test set. 
+
+```{r PCsData, eval = T}
 # Obtain first principle component as data
-PC_data = data.frame(PCs$x[,1])
+PC_data = data.frame(PCs$x[,1:2])
 
 # Convert into data frame, adding response
 PC_data = bind_cols(PC_data, data.frame(Sale_Price = Model_Data$Sale_Price))
@@ -413,7 +409,20 @@ print(paste("MSE from Test Set: ", Metrics::mse(pc_slr_preds, PC_test$Sale_Price
 PCs$rotation[,1]
 ```
 
-```{r eval = T}
+A similar process was performed for the non-linear model as for the principle component model. We start by calculating the orthogonal $4^{th}$ degree polynomial variables from the `Estimate_Building` variable, renaming each term as `Poly_#`. This data set was binded with the original data as to have all polynomial variables and the response in a single data frame. Then, train and test splits were made. The model was trained on the training set and predicted to the testing set, resulting in the MSE provided.
+
+```{r PolyModel, eval = T}
+# Adding polynomial terms for later use
+poly_predictors = data.frame(poly(Model_Data$Estimate_Building, 4))
+
+Polynomial_Data = poly_predictors %>%
+    rename(Poly_1 = X1,
+           Poly_2 = X2,
+           Poly_3 = X3,
+           Poly_4 = X4) %>%
+    bind_cols(Model_Data)
+
+# Split polynomial data
 poly_train = Polynomial_Data[ids_train,]
 poly_test = Polynomial_Data[-ids_train,]
 
@@ -431,3 +440,4 @@ print(poly_slr)
 poly_slr_preds = predict(poly_slr, poly_test, type = 'raw')
 print(paste("MSE from Test Set: ", Metrics::mse(poly_slr_preds, poly_test$Sale_Price)))
 ```
+
