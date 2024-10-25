@@ -113,6 +113,7 @@ data = data %>%
         Age_Decade = `Age Decade`,
         Neighborhood_Code_Mapping = `Neigborhood Code (mapping)`,
         Town_and_Neighborhood = `Town and Neighborhood`,
+        Sale_Half_Year = `Sale Half-Year`
         )
 
 # Save cleaned data
