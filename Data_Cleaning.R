@@ -15,13 +15,36 @@ rooms = as.numeric(0)
 bedrooms = as.numeric(0)
 baths = as.numeric(0)
 
+Area = as.numeric(0)
+Sub_Area = as.numeric(0)
+Block = as.numeric(0)
+Parcel = as.numeric(0)
+Multicode = as.numeric(0)
+
 # Takes a minute to run, not too bad though
 for(i in 1:nrow(data)){
     sell_date[i] = str_split(str_split(data$Description[i], "sold on ")[[1]][2], ", is a")[[1]][1]
     rooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][1]
     bedrooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][2]
     baths[i] = str_split(str_split(data$Description[i], "bedrooms, and ")[[1]][2], " of which are bathrooms")[[1]][1]
+
+    Area[i] = substring(data$PIN[i], first = 1, last = 2)
+    Sub_Area[i] = substring(data$PIN[i], first = 3, last = 4)
+    Block[i] = substring(data$PIN[i], first = 5, last = 6)
+    Parcel[i] = substring(data$PIN[i], 7, 8)
+    Multicode[i] = substring(data$PIN[i], 9, 12)
 }
+
+# Extracting key information from `PIN` variable
+
+test = data[1,]
+
+Area = substring(test$PIN, first = 1, last = 2)
+Sub_Area = substring(test$PIN, first = 3, last = 4)
+Block = substring(test$PIN, first = 5, last = 6)
+Parcel = substring(test$PIN, 7, 8)
+Multicode = substring(test$PIN, 9, 12)
+
 
 # Adding features of descriptions, removing descriptions
 data = data %>%
@@ -29,7 +52,12 @@ data = data %>%
       Sell_Date = mdy(sell_date),
       Rooms = as.numeric(rooms),
       Bedrooms = as.numeric(bedrooms),
-      Baths = as.numeric(baths)
+      Baths = as.numeric(baths),
+      Area = Area,
+      Sub_Area = Sub_Area,
+      Block = Block,
+      Parcel = Parcel,
+      Multicode = Multicode
     ) %>%
     select(-Description)
 
