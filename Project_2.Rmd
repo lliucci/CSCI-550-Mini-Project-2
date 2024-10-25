@@ -28,6 +28,37 @@ knitr::opts_chunk$set(
   echo = T,       # display code
   eval = F,       # evaluate code
   fig.pos = "H")  # holdings figures in position
+
+# Packages
+library(tidyverse)
+library(ggmap)
+library(sf)
+theme_set(theme_bw())
+
+# Data Reading
+data = read_csv("data_cleaned.csv")
+
+data = data %>%
+    mutate(Baths = factor(Baths),
+            Rooms = factor(Rooms),
+            Bedrooms = factor(Bedrooms),
+            Sale_Year = factor(`Sale_Year`),
+            `Property_Class` = factor(`Property_Class`),
+            Apartments = factor(Apartments),
+            Basement = factor(Basement),
+            `Attic_Type` = factor(`Attic_Type`),
+            `Design_Plan` = factor(`Design_Plan`),
+            `Cathedral_Ceiling` = factor(`Cathedral_Ceiling`),
+            Fireplaces = factor(Fireplaces),
+            Porch = factor(Porch))
+
+# Setting up for spatial plots
+register_google(key = "AIzaSyCnq3okTIRjxfQ0wHWGyu08HGCrFtIQo4M", write = TRUE)
+Map <- get_googlemap(center = c(long = -87.8,lat = 41.8), maptype = "satellite", zoom = 9)
+cook_map2 <- read_sf('Congressional_District.geojson')
+cook_map_overlay = st_transform(cook_map2)
+cook_map <- map_data('county', 'illinois') |> filter(subregion == 'cook')
+
 ```
 
 \vfill
@@ -37,6 +68,8 @@ knitr::opts_chunk$set(
 \newpage  
 
 # Data Preprocessing and Exploration
+
+## Data Cleaning
 
 The data received had a few issues that needed to be dealt with. First of all, the `Description` variable contained pieces of key information that were extracted (number of bathrooms, number of bedrooms, total number of rooms, and sell date). 
 
@@ -134,6 +167,95 @@ This cleaned data set was written as `data_cleaned.csv` so it could easily be re
 ```{r}
 # Save cleaned data
 write_csv(data, "data_cleaned.csv")
+```
+
+## Exploration of Data
+
+Within the data, latitude and longitude coordinates were provided for each listing. A map of the sale price of listings is overlaid on a satellite map of the region (Figure \@ref(fig:SalePriceSatMap)). Here, it can be seen that a lot of the higher price listings are on the water, with sale price generally decreasing the more in-land the listing is.
+
+```{r SalePriceSatMap, fig.cap = "A spatial map of the sale prices over the region.", fig.height = 8, eval = T}
+# Spatial Map of Sale Price
+ggmap(Map, darken = c(0.1, "white")) +
+    geom_polygon(data = cook_map, aes(x = long, y = lat), 
+        fill = NA, color = "orange") +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = Sale_Price), 
+                size = 0.02, 
+                alpha = 0.75) +
+    scale_color_gradient(low = "#6fe7f7", high = "#890000") +
+    labs(x = "Longitude", y = "Latitude", color = "Sale Price ($)")
+```
+
+Multiple boxplots were created for all of the variables pertaining to a garage against the response (Figure \@ref(fig:GarageVarBoxplots)). As the first garage increases in size, so too does the sale price. Having a garage attached to the building (`Garage_#_Attachement` = 1) is also associated with a higher sale price for both garage 1 and garage 2. Higher quality materials (larger values of `Garage_#_Material`) is associated with higher sale prices too.
+
+```{r GarageVarBoxplots, fig.cap = "A series of boxplots for all garage variables against sale price.", eval = T}
+# Plotting Against Garage Variables
+data %>%
+    select(Sale_Price, 
+           Garage_1_Area, 
+           Garage_1_Size, 
+           Garage_1_Attachment, 
+           Garage_1_Material, 
+           Garage_2_Area, 
+           Garage_2_Size, 
+           Garage_2_Attachment, 
+           Garage_2_Material) %>%
+    pivot_longer(cols = 2:9, names_to = "Variable", values_to = "Value") %>%
+    ggplot(aes(x = factor(Value), y = Sale_Price, group = Value)) +
+    geom_boxplot() +
+    facet_wrap(~Variable, scales = "free_x", nrow = 2) +
+    labs(x = " ")
+```
+
+When comparing sale price to variables related to the physical property, it can be noted that for the `Apartments` variable, there is large varibility in the "0" group, which may be due to non-apartment buildings being more expensive (Figure \@ref(fig:PropertyVarBoxplots)). Sale price is generally the same across attic types, porch groups, and design plans. Sale price appears to increase as the number of fireplaces increases. Additionally, sale price is higher for listings with cathedral ceilings. The `Proprty_Class` variable apperas to have equal variability in sale price for all classes except "209".
+
+```{r PropertyVarBoxplots, fig.cap = "A series of boxplots for variables related to the property itself.", eval = T}
+data %>%
+    select(`Sale_Price`, 
+            `Property_Class`,
+            `Apartments`,
+            `Basement`,
+            `Attic_Type`,
+            `Design_Plan`,
+            `Cathedral_Ceiling`,
+            Fireplaces,
+            Porch) %>%
+    pivot_longer(cols = 2:9, names_to = "Variable", values_to = "Value") %>%
+    ggplot(aes(x = factor(Value), y = Sale_Price, group = Value)) +
+    geom_boxplot() +
+    facet_wrap(~Variable, scales = "free_x", nrow = 2) +
+    labs(x = " ")
+```
+
+Additional boxplots were created for the number of rooms in each listing (Figure \@ref(fig:RoomVarBoxplots)). For all room variables, there is generally an increase in sale price as the number of rooms increases. However, the sale price for listings with 1 room is higher, on average, than all other room groups. The same goes for listings with 0 bedrooms.
+
+```{r RoomVarBoxplots, fig.cap = "A series of boxplots for the variables relating to number of rooms present.", eval = T}
+# Plotting Against Room Variables
+data %>%
+    select(`Sale_Price`, 
+            `Bedrooms`,
+            `Baths`,
+            `Rooms`) %>%
+    pivot_longer(cols = 2:4, names_to = "Variable", values_to = "Value") %>%
+    ggplot(aes(x = factor(Value), y = Sale_Price, group = Value)) +
+    geom_boxplot() +
+    facet_wrap(~Variable, scales = "free_x") +
+    labs(x = " ")
+```
+
+The final visualization of interest is a scatterplot of sale price against both building square footage and land square footage (Figure \@ref(fig:BuildingLandSize)). Here, it can be seen that for listings with high building square footage, we see higher sale price. The relationship is the same for land square footage, although the highest sale prices occur at high building square footage and average land square footage.
+
+```{r BuildingLandSize, fig.cap = "A scatterplot of the relationship between sale price and building/land square footage.", eval = T}
+data %>%
+    ggplot(aes(x = `Building_Square_Feet`, 
+                y = `Land_Square_Feet`, 
+                color = `Sale_Price`)) +
+    geom_point(size = 2) +
+    labs(x = "Building Square Footage",
+        y = "Land Square Footage",
+        color = "Sale Price ($)")
 ```
 
 # Model Development and Performance Evaluation
