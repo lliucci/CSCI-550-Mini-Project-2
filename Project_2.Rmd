@@ -395,6 +395,53 @@ print(paste("MSE from Test Set: ", Metrics::mse(bss_preds, test$Sale_Price)))
 
 # Please put Ridge and Lasso Stuff Here
 
+We fit Ridge and Lasso regression models using am mixutre of the `caret` and `glmnet` packages. `glmnet` was used to find the sequence of $\lambda$ values to choose from, while `caret` was used to ensure consistency with how we fit our other models. Ridge and Lasso regression can be easily fit using the `glmnet` package alone.
+
+```{r, Ridge and Lasso}
+library(glmnet)
+data.train.mat <- model.matrix(Sale_Price ~. , data = train)[,-1]
+data.test.mat <- model.matrix(Sale_Price ~., data = test)[,-1]
+
+
+# Fitting ridge regression model 
+tune.grid.ridge = expand.grid(alpha = 0,
+                           lambda = glmnet(data.train.mat,
+                                    train$Sale_Price, 
+                                    alpha = 0)$lambda)
+fit.ridge <- train(Sale_Price ~ ., data = train,
+  method = 'glmnet',
+  trControl = train_control,
+  tuneGrid = tune.grid.ridge)
+
+# Tuning Parameters 
+print(fit.ridge)
+
+# fitting the model on the test data
+ridge_pred <- predict(fit.ridge, test)
+print(paste("MSE from Test Set: ", Metrics::mse(ridge_pred, test$Sale_Price)))
+# model coefficients
+coef(fit.ridge$finalModel, s = fit.ridge$bestTune$lambda)
+
+
+# Fitting Lasso regression model
+tune.grid.lasso = expand.grid(alpha = 1,
+                           lambda = glmnet(data.train.mat,
+                                    train$Sale_Price,
+                                    alpha = 1)$lambda)
+fit.lasso <- train(Sale_Price ~., data = train,
+  method = 'glmnet',
+  trControl = train_control,
+  tuneGrid = tune.grid.lasso)
+
+# Tuning Parameters
+print(fit.lasso)
+# Fitting the model on our test data
+lasso_pred <- predict(fit.lasso, test)
+print(paste("MSE from Test Set: ", Metrics::mse(lasso_pred, test$Sale_Price)))
+# model coefficients
+coef(fit.lasso$finalModel, s = fit.lasso$bestTune$lambda)
+```
+
 For the model using principle components, we first selected all numeric variables except for the response and calculated the principle components. The cumulative variance is shown below, indicating that only the first two principle components are needed.
 
 ```{r PCs, eval = T}
