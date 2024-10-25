@@ -1,12 +1,62 @@
+library(tidyverse)
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+library(glmnet)
+library(lubridate)
+library(mosaic)
+library(ggthemes)
+
+conflicted::conflicts_prefer(dplyr::filter(),dplyr::lag(), base::sample(), base::mean())
+ 
 data = readr::read_csv("data_cleaned.csv")
 
+data = data %>%
+    mutate(Baths = factor(Baths),
+            Rooms = factor(Rooms),
+            Bedrooms = factor(Bedrooms),
+            Sale_Year = factor(`Sale_Year`),
+            `Property_Class` = factor(`Property_Class`),
+            Apartments = factor(Apartments),
+            Basement = factor(Basement),
+            `Attic_Type` = factor(`Attic_Type`),
+            `Design_Plan` = factor(`Design_Plan`),
+            `Cathedral_Ceiling` = factor(`Cathedral_Ceiling`),
+            Garage_1_Size) |>
+    select(-c(Use, `Modeling Group`))
+
+
+
 # Simple Linear Regression -----------------------------
-lm_slr = lm(`Sale Price` ~ Age, data = data)
+lm_slr = lm(Sale_Price ~ Age, data = data)
 summary(lm_slr)
+lm_slr_land_size <- lm(Sale_Price~ Land_Square_Feet, data = data)
+summary(lm_slr_land_size)
+lm_slr_build_size <- lm(Sale_Price~Land_Square_Feet, data = data)
+summary(lm_slr_build_size)
+
 
 # Multiple Linear Regression ---------------------------
 lm_mlr = lm(`Sale Price` ~ Age + Baths * Bedrooms, data = data)
 summary(lm_mlr)
+
+# MLR with longitude and lattitude
+lm_longlat<- lm(Sale_Price ~ Longitude + Latitude, data = data)
+summary(lm_longlat)
+lm_longlat$residuals
+
+
+plot(data$Longitude~lm_longlat$residuals)
+plot(data$Latitude~lm_longlat$residuals)
+
+
+# Stepwise Regression - Backward Selection and Hybrid Selection
+
+lm_step_back <- lm(Sale_Price ~. , data = data)
+lm_step_back <- step(lm_step_back, direction = "back", trace = 0)
+summary(lm_step_back)
+
+lm_step_hybrid <- lm(Sale_Price ~., data = data)
+lm_step_hybrid <- step(lm_step_back, direction = "both", trace = 0)
+summary(lm_step_hybrid)
 
 # PCA --------------------------------------------------
 numeric_data = data %>% select_if(is.numeric)
