@@ -15,8 +15,16 @@ data = data %>%
             Basement = factor(Basement),
             `Attic_Type` = factor(`Attic_Type`),
             `Design_Plan` = factor(`Design_Plan`),
-            `Cathedral_Ceiling` = factor(`Cathedral_Ceiling`),
-            `Garage 1 Size`)
+            `Cathedral_Ceiling` = factor(`Cathedral_Ceiling`))
+
+
+register_google(key = "AIzaSyCnq3okTIRjxfQ0wHWGyu08HGCrFtIQo4M", write = TRUE)
+
+Map <- get_googlemap(center = c(long = -87.8,lat = 41.8), maptype = "satellite", zoom = 9)
+
+cook_map2 <- read_sf('Congressional_District.geojson')
+cook_map_overlay = st_transform(cook_map2)
+
 
 # Sale_Price against Age and Number of Rooms
 data %>%
@@ -65,14 +73,6 @@ ggsave(SP_vs_Lot_Building_Size,
     scale = 2)
 
 # Spatial Map of Sale Price
-
-register_google(key = "AIzaSyCnq3okTIRjxfQ0wHWGyu08HGCrFtIQo4M", write = TRUE)
-
-Map <- get_googlemap(center = c(long = -87.8,lat = 41.8), maptype = "satellite", zoom = 9)
-
-cook_map2 <- read_sf('Congressional_District.geojson')
-cook_map_overlay = st_transform(cook_map2)
-
 Sat_Map_Sale_Price = ggmap(Map, darken = c(0.1, "white")) +
     geom_point(data = data, 
                 aes(x = Longitude, 
@@ -126,7 +126,7 @@ ggsave(Sat_Map_Neighborhood_Code,
     units = 'px',
     scale = 2)
 
-# Spatial Map of Neighborhood Code
+# Spatial Map of Town Code
 
 Sat_Map_Town_Code = ggmap(Map, darken = c(0.1, "white")) +
     geom_point(data = data, 
@@ -157,6 +157,40 @@ Sat_Map_Design_Plan = ggmap(Map, darken = c(0.1, "white")) +
 
 ggsave(Sat_Map_Design_Plan,
     filename = "Figures/Sat_Map_of_Design_Plan.png",
+    height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Spatial map of Site Desiribility
+Sat_Map_Desirability = ggmap(Map, darken = c(0.1, "white")) +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = factor(Site_Desirability)), 
+                size = 0.1, 
+                alpha = 0.75) +
+    labs(x = "Longitude", y = "Latitude", color = "Desirability")
+
+ggsave(Sat_Map_Desirability,
+    filename = "Figures/Sat_Map_of_Desirability.png",
+    height = 1200,
+    width = 1200,
+    units = 'px',
+    scale = 2)
+
+# Spatial map of Floodplain
+Sat_Map_Floodplain = ggmap(Map, darken = c(0.1, "white")) +
+    geom_point(data = data, 
+                aes(x = Longitude, 
+                    y = Latitude, 
+                    color = factor(Floodplain)), 
+                size = 0.1, 
+                alpha = 0.75) +
+    labs(x = "Longitude", y = "Latitude", color = "Floodplain")
+
+ggsave(Sat_Map_Floodplain,
+    filename = "Figures/Sat_Map_of_Floodplain.png",
     height = 1200,
     width = 1200,
     units = 'px',
@@ -229,7 +263,7 @@ ggsave(Room_Vars,
     scale = 2)
 
 # Plotting Against Lot Variables
-Room_Vars = data %>%
+Lot_Vars = data %>%
     select(`Sale_Price`, 
             Land_Square_Feet,
             Building_Square_Feet,
@@ -240,8 +274,8 @@ Room_Vars = data %>%
     facet_wrap(~Variable, scales = "free_x") +
     labs(x = " ")
 
-ggsave(Room_Vars,
-    filename = "Figures/SP_vs_Room_Vars.png",
+ggsave(Lot_Vars,
+    filename = "Figures/SP_vs_Lot_Vars.png",
     height = 800,
     width = 1200,
     units = 'px',

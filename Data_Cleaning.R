@@ -15,12 +15,23 @@ rooms = as.numeric(0)
 bedrooms = as.numeric(0)
 baths = as.numeric(0)
 
+Area = as.numeric(0)
+Sub_Area = as.numeric(0)
+Block = as.numeric(0)
+Parcel = as.numeric(0)
+Multicode = as.numeric(0)
+
 # Takes a minute to run, not too bad though
 for(i in 1:nrow(data)){
     sell_date[i] = str_split(str_split(data$Description[i], "sold on ")[[1]][2], ", is a")[[1]][1]
     rooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][1]
     bedrooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][2]
     baths[i] = str_split(str_split(data$Description[i], "bedrooms, and ")[[1]][2], " of which are bathrooms")[[1]][1]
+    Area[i] = substring(data$PIN[i], first = 1, last = 2)
+    Sub_Area[i] = substring(data$PIN[i], first = 3, last = 4)
+    Block[i] = substring(data$PIN[i], first = 5, last = 6)
+    Parcel[i] = substring(data$PIN[i], 7, 8)
+    Multicode[i] = substring(data$PIN[i], 9, 12)
 }
 
 # Adding features of descriptions, removing descriptions
@@ -29,7 +40,12 @@ data = data %>%
       Sell_Date = mdy(sell_date),
       Rooms = as.numeric(rooms),
       Bedrooms = as.numeric(bedrooms),
-      Baths = as.numeric(baths)
+      Baths = as.numeric(baths),
+      Area = Area,
+      Sub_Area = Sub_Area,
+      Block = Block,
+      Parcel = Parcel,
+      Multicode = Multicode
     ) %>%
     select(-Description)
 
@@ -101,7 +117,21 @@ data = data %>%
         Most_Recent_Sale = `Most Recent Sale`,
         Pure_Market_Filter = `Pure Market Filter`,
         Garage_Indicator = `Garage Indicator`,
-        Lot_Size = `Lot Size`)
+        Lot_Size = `Lot Size`,
+        Construction_Quality = `Construction Quality`,
+        Site_Desirability = `Site Desirability`,
+        Other_Improvements = `Other Improvements`,
+        Repair_Condition = `Repair Condition`,
+        Deed_No = `Deed No.`,
+        Census_Tract = `Census Tract`,
+        Modeling_Group = `Modeling Group`,
+        Sale_Half_of_Year = `Sale Half of Year`,
+        Age_Decade = `Age Decade`,
+        Neighborhood_Code_Mapping = `Neigborhood Code (mapping)`,
+        Town_and_Neighborhood = `Town and Neighborhood`,
+        Sale_Half_Year = `Sale Half-Year`,
+        Sale_Quarter = `Sale Quarter`
+        )
 
 # Save cleaned data
 write_csv(data, "data_cleaned.csv")
