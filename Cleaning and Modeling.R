@@ -236,7 +236,7 @@ lm_step_back <- step(lm_step_back, direction = "back", trace = 0)
 summary(lm_step_back)
 
 lm_step_hybrid <- lm(Sale_Price ~., data = data)
-lm_step_hybrid <- step(lm_step_back, direction = "both", trace = 0)
+lm_step_hybrid <- step(lm_step_hybrid, direction = "both", trace = 0)
 summary(lm_step_hybrid)
 
 # PCA --------------------------------------------------
