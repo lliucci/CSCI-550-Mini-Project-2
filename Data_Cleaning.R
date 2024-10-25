@@ -27,24 +27,12 @@ for(i in 1:nrow(data)){
     rooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][1]
     bedrooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][2]
     baths[i] = str_split(str_split(data$Description[i], "bedrooms, and ")[[1]][2], " of which are bathrooms")[[1]][1]
-
     Area[i] = substring(data$PIN[i], first = 1, last = 2)
     Sub_Area[i] = substring(data$PIN[i], first = 3, last = 4)
     Block[i] = substring(data$PIN[i], first = 5, last = 6)
     Parcel[i] = substring(data$PIN[i], 7, 8)
     Multicode[i] = substring(data$PIN[i], 9, 12)
 }
-
-# Extracting key information from `PIN` variable
-
-test = data[1,]
-
-Area = substring(test$PIN, first = 1, last = 2)
-Sub_Area = substring(test$PIN, first = 3, last = 4)
-Block = substring(test$PIN, first = 5, last = 6)
-Parcel = substring(test$PIN, 7, 8)
-Multicode = substring(test$PIN, 9, 12)
-
 
 # Adding features of descriptions, removing descriptions
 data = data %>%
