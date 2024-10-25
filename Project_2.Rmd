@@ -258,5 +258,9 @@ data %>%
         color = "Sale Price ($)")
 ```
 
+## Hypothesis Development
+
+From the exploration performed above, we hypothesize that building square footage, land square footage, the number of rooms, and location are likely going to have the highest impact on sale price.
+
 # Model Development and Performance Evaluation
 
