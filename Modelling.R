@@ -142,7 +142,7 @@ lm_longlat$residuals
 plot(data$Longitude~lm_longlat$residuals)
 plot(data$Latitude~lm_longlat$residuals)
 
-# Dredge for auto selection -----------------------------
+# Dredge for auto selection across 1 variable models ----------------
 
 # defining full model to be model will all variables
 lm.full = lm(Sale_Price ~ ., data = Model_Data)
@@ -160,7 +160,25 @@ top.model = get.models(dredging, subset = 1)[[1]]
 
 summary(top.model)
 
-# Stepwise Regression - Backward Selection and Hybrid Selection
+# Dredge for best subset selection ----------------------------------
+
+# defining full model to be model will all variables
+lm.full = lm(Sale_Price ~ ., data = Model_Data)
+
+options(na.action = "na.fail")
+
+# Searching all single parameter models and ranking on AIC
+dredging = dredge(lm.full, rank = "AIC")
+
+# Show top models that are indistinguishable
+subset(dredging, delta < 3)
+
+# Select top model
+top.model = get.models(dredging, subset = 1)[[1]]
+
+summary(top.model)
+
+# Stepwise Regression - Backward Selection and Hybrid Selection -----
 
 lm_step_back <- lm(Sale_Price ~. , data = data)
 lm_step_back <- step(lm_step_back, direction = "back", trace = 0)

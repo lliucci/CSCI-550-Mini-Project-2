@@ -102,6 +102,8 @@ cook_map <- map_data('county', 'illinois') |> filter(subregion == 'cook')
 
 # Executive Summary
 
+This project aims to determine the most optimal information to collect on real estate listings in the Chicago area. This was done by scraping data from 2013 to 2019 and collecting variables relating to the area of a listing and physical properties of the listing. When searching for the variables that best explain sale price in the Chicago area, exploratory data analysis found that the size of the listing, number of rooms present, estimated value, and additional quality of life features like a garage or fireplaces are the best predictors. To further determine best predictors, various models were fit and compared. We formally recommend using the estimate of the value of land a listing was built on and the estimate of the building itself as the main factors for determining how much a listing will sell for.
+
 \newpage  
 
 # Data Preprocessing and Exploration
@@ -119,10 +121,18 @@ baths = as.numeric(0)
 
 # Takes a minute to run, not too bad though
 for(i in 1:nrow(data)){
-    sell_date[i] = str_split(str_split(data$Description[i], "sold on ")[[1]][2], ", is a")[[1]][1]
-    rooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][1]
-    bedrooms[i] = str_extract_all(str_split(data$Description[i], "total of ")[[1]][2], "\\d")[[1]][2]
-    baths[i] = str_split(str_split(data$Description[i], "bedrooms, and ")[[1]][2], " of which are bathrooms")[[1]][1]
+    sell_date[i] = str_split(
+        str_split(data$Description[i], "sold on ")[[1]][2],
+         ", is a")[[1]][1]
+    rooms[i] = str_extract_all(
+        str_split(data$Description[i], "total of ")[[1]][2],
+         "\\d")[[1]][1]
+    bedrooms[i] = str_extract_all(
+        str_split(data$Description[i], "total of ")[[1]][2],
+         "\\d")[[1]][2]
+    baths[i] = str_split(
+        str_split(data$Description[i], "bedrooms, and ")[[1]][2],
+         " of which are bathrooms")[[1]][1]
     Area[i] = substring(data$PIN[i], first = 1, last = 2)
     Sub_Area[i] = substring(data$PIN[i], first = 3, last = 4)
     Block[i] = substring(data$PIN[i], first = 5, last = 6)
@@ -369,7 +379,23 @@ mlr_preds = predict(mlr, test)
 print(paste("MSE from Test Set: ", Metrics::mse(mlr_preds, test$Sale_Price)))
 ```
 
-For the model using principle components, we first selected all numeric variables except for the response and calculated the principle components. The cumulative variance is shown below, indicating that only the first principle component is needed.
+For best subset selection, all models were searched using the `dredge` function within `R` and compared using AIC as a criterion. The model determined to be best is shown below.
+
+```{r}
+# Fit model determined by dredge
+################# insert dredge model ######################
+
+# Print model specifications
+print(bss)
+
+# Predict to test data
+bss_preds = predict(bss, test)
+print(paste("MSE from Test Set: ", Metrics::mse(bss_preds, test$Sale_Price)))
+```
+
+# Please put Ridge and Lasso Stuff Here
+
+For the model using principle components, we first selected all numeric variables except for the response and calculated the principle components. The cumulative variance is shown below, indicating that only the first two principle components are needed.
 
 ```{r PCs, eval = T}
 # Calculating principle components using numeric data
@@ -380,7 +406,7 @@ PCs = prcomp(numeric_data)
 PCs$sdev^2/sum(PCs$sdev^2)
 ```
 
-Then, a data frame is created using the first principle component's variable values. The observed response values were then binded to this data frame and the train-test splits were made again using the original training IDs. The model was trained on the training data using the 5-fold cross-validation and predictions were made on the test set. 
+Then, a data frame is created using the first two principle components' variable values. The observed response values were then binded to this data frame and the train-test splits were made again using the original training IDs. The model was trained on the training data using the 5-fold cross-validation and predictions were made on the test set. 
 
 ```{r PCsData, eval = T}
 # Obtain first principle component as data
@@ -441,3 +467,11 @@ poly_slr_preds = predict(poly_slr, poly_test, type = 'raw')
 print(paste("MSE from Test Set: ", Metrics::mse(poly_slr_preds, poly_test$Sale_Price)))
 ```
 
+Comparing the models on mean squared error when predicting to the test set, we can see which model performed the best when predicting to the test data (Table \@ref(tab:MSETable)).
+
+```{r MSETable, eval = F}
+tibble(Model = c("SLR", "MLR", "BSS", "Ridge", "Lasso", "PCA", "Polynomial"),
+    MSE = c(21567219262.6313, 10429798940.6481, "BSS", "Ridge", "Lasso", 37437607836.8467, 21249303121.8831)) %>%
+    arrange(desc(MSE)) %>%
+    knitr::kable(caption = "A table of MSE for the models compared when predicting to the test data.")
+```
