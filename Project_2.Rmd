@@ -327,7 +327,8 @@ Model_Data = data %>%
             Building_Square_Feet = scale(Building_Square_Feet),
             Estimate_Land = scale(Estimate_Land),
             Estimate_Building = scale(Estimate_Building),
-            Lot_Size = scale(Lot_Size))
+            Lot_Size = scale(Lot_Size)) %>%
+    filter(Sale_Price > 499)
 ```
 
 At this point, the data were split into training and testing sets by randomly sampling 80% of the rows for the training set and leaving the remaining rows for the testing set.
@@ -360,7 +361,8 @@ slr <- train(Sale_Price~Estimate_Building, data = train,
 print(slr)
 
 slr_preds = predict(slr, test)
-print(paste("MSE from Test Set: ", Metrics::mse(slr_preds, test$Sale_Price)))
+slr_mse = Metrics::mse(slr_preds, test$Sale_Price)
+print(paste("MSE from Test Set: ", slr_mse))
 ```
 
 To find the best Multiple Linear Regression model, we used all available predictors with no interactions. A summary of the cross-validation process is provided. Then, we predicted to the test data and calculated the mean squared error.
@@ -376,28 +378,37 @@ print(mlr)
 
 # Predict to test data
 mlr_preds = predict(mlr, test)
-print(paste("MSE from Test Set: ", Metrics::mse(mlr_preds, test$Sale_Price)))
+mlr_mse = Metrics::mse(mlr_preds, test$Sale_Price)
+print(paste("MSE from Test Set: ", mlr_mse))
 ```
 
-For best subset selection, all models were searched using the `dredge` function within `R` and compared using AIC as a criterion. The model determined to be best is shown below.
+Starting with the MLR model, subset selection was performed via backwards selection. Each iteration, the term that had the lowest impact on AIC was removed until no other terms needed to be removed. Once the ideal model formula was determined, this model was re-fit using 5-fold cross-validation.
 
 ```{r}
-# Fit model determined by dredge
-################# insert dredge model ######################
+# Refit MLR model
+mlr = lm(Sale_Price ~ ., data = train)
+
+# Determine best model
+best_subset <- MASS::stepAIC(mlr, direction = "backward", scope = ~ 1)
+
+# Refit best model
+best_subset <- train(Sale_Price ~ 1,
+                    data = train,
+                    trControl = train_control,
+                    method = 'lm')
 
 # Print model specifications
-print(bss)
+print(best_subset)
 
 # Predict to test data
-bss_preds = predict(bss, test)
-print(paste("MSE from Test Set: ", Metrics::mse(bss_preds, test$Sale_Price)))
+bs_preds = predict(best_subset, test)
+bs_mse = Metrics::mse(bs_preds, test$Sale_Price)
+print(paste("MSE from Test Set: ", bs_mse))
 ```
-
-# Please put Ridge and Lasso Stuff Here
 
 We fit Ridge and Lasso regression models using am mixutre of the `caret` and `glmnet` packages. `glmnet` was used to find the sequence of $\lambda$ values to choose from, while `caret` was used to ensure consistency with how we fit our other models. Ridge and Lasso regression can be easily fit using the `glmnet` package alone.
 
-```{r, Ridge and Lasso}
+```{r, RidgeLasso, eval =T}
 library(glmnet)
 data.train.mat <- model.matrix(Sale_Price ~. , data = train)[,-1]
 data.test.mat <- model.matrix(Sale_Price ~., data = test)[,-1]
@@ -418,7 +429,8 @@ print(fit.ridge)
 
 # fitting the model on the test data
 ridge_pred <- predict(fit.ridge, test)
-print(paste("MSE from Test Set: ", Metrics::mse(ridge_pred, test$Sale_Price)))
+ridge_mse = Metrics::mse(ridge_pred, test$Sale_Price)
+print(paste("MSE from Test Set: ", ridge_mse))
 # model coefficients
 coef(fit.ridge$finalModel, s = fit.ridge$bestTune$lambda)
 
@@ -429,15 +441,16 @@ tune.grid.lasso = expand.grid(alpha = 1,
                                     train$Sale_Price,
                                     alpha = 1)$lambda)
 fit.lasso <- train(Sale_Price ~., data = train,
-  method = 'glmnet',
-  trControl = train_control,
-  tuneGrid = tune.grid.lasso)
+                    method = 'glmnet',
+                    trControl = train_control,
+                    tuneGrid = tune.grid.lasso)
 
 # Tuning Parameters
 print(fit.lasso)
 # Fitting the model on our test data
 lasso_pred <- predict(fit.lasso, test)
-print(paste("MSE from Test Set: ", Metrics::mse(lasso_pred, test$Sale_Price)))
+lasso_mse = Metrics::mse(lasso_pred, test$Sale_Price)
+print(paste("MSE from Test Set: ", lasso_mse))
 # model coefficients
 coef(fit.lasso$finalModel, s = fit.lasso$bestTune$lambda)
 ```
@@ -476,7 +489,8 @@ print(pc_slr)
 
 # predict to test data
 pc_slr_preds = predict(pc_slr, PC_test)
-print(paste("MSE from Test Set: ", Metrics::mse(pc_slr_preds, PC_test$Sale_Price)))
+pc_mse = Metrics::mse(pc_slr_preds, PC_test$Sale_Price)
+print(paste("MSE from Test Set: ", pce_mse))
 
 # Loadings from first PC
 PCs$rotation[,1]
@@ -511,14 +525,16 @@ print(poly_slr)
 
 # Predicting and Calculating MSE
 poly_slr_preds = predict(poly_slr, poly_test, type = 'raw')
-print(paste("MSE from Test Set: ", Metrics::mse(poly_slr_preds, poly_test$Sale_Price)))
+poly_mse = Metrics::mse(poly_slr_preds, poly_test$Sale_Price)
+print(paste("MSE from Test Set: ", poly_mse))
 ```
 
-Comparing the models on mean squared error when predicting to the test set, we can see which model performed the best when predicting to the test data (Table \@ref(tab:MSETable)).
+Comparing the models on mean squared error when predicting to the test set, we can see which model performed the best when predicting to the test data (Table \@ref(tab:MSETable)). From this table, the top performing model on test data was _____.
 
-```{r MSETable, eval = F}
-tibble(Model = c("SLR", "MLR", "BSS", "Ridge", "Lasso", "PCA", "Polynomial"),
-    MSE = c(21567219262.6313, 10429798940.6481, "BSS", "Ridge", "Lasso", 37437607836.8467, 21249303121.8831)) %>%
+```{r MSETable, eval = T}
+tibble(Model = c("SLR", "MLR", "Backward Selection", 
+                "Ridge", "Lasso", "PCA", "Polynomial"),
+    MSE = c(slr_mse, mlr_mse, bs_mse, ridge_mse, lasso_mse, pc_mse)) %>%
     arrange(desc(MSE)) %>%
     knitr::kable(caption = "A table of MSE for the models compared when predicting to the test data.")
 ```
