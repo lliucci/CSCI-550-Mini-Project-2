@@ -359,6 +359,7 @@ slr <- train(Sale_Price~Estimate_Building, data = train,
 
 # Summary of model
 print(slr)
+summary(slr$finalModel)
 
 slr_preds = predict(slr, test)
 slr_mse = Metrics::mse(slr_preds, test$Sale_Price)
@@ -368,7 +369,7 @@ print(paste("MSE from Test Set: ", slr_mse))
 To find the best Multiple Linear Regression model, we used all available predictors with no interactions. A summary of the cross-validation process is provided. Then, we predicted to the test data and calculated the mean squared error.
 
 ```{r MLR, eval = T}
-# Train mly model using k-fold cross validation
+# Train mlr model using k-fold cross validation
 mlr <- train(Sale_Price~., data = train, 
                trControl = train_control, 
                method = "lm")
@@ -401,6 +402,7 @@ best_subset <- train(Sale_Price ~ Lot_Size + Building_Square_Feet + Bedrooms + B
 
 # Print model specifications
 print(best_subset)
+summary(best_subset$finalModel)
 
 # Predict to test data
 bs_preds = predict(best_subset, test)
@@ -427,7 +429,7 @@ fit.ridge <- train(Sale_Price ~ ., data = train,
   tuneGrid = tune.grid.ridge)
 
 # Tuning Parameters 
-# print(fit.ridge)
+print(fit.ridge)
 
 # fitting the model on the test data
 ridge_pred <- predict(fit.ridge, test)
@@ -488,6 +490,7 @@ pc_slr <- train(Sale_Price~., data = PC_train,
 
 # display model
 print(pc_slr)
+summary(pc_slr$finalModel)
 
 # predict to test data
 pc_slr_preds = predict(pc_slr, PC_test)
