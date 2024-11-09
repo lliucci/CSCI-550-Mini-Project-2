@@ -382,7 +382,7 @@ mlr_mse = Metrics::mse(mlr_preds, test$Sale_Price)
 print(paste("MSE from Test Set: ", mlr_mse))
 ```
 
-Starting with the MLR model, subset selection was performed via backwards selection. Each iteration, the term that had the lowest impact on AIC was removed until no other terms needed to be removed. Once the ideal model formula was determined, this model was re-fit using 5-fold cross-validation.
+Starting with the MLR model, subset selection was performed via backwards selection. Each iteration, the term that had the lowest impact on AIC was removed until no other terms needed to be removed. Once the ideal model formula was determined, this model was re-fit using 5-fold cross-validation. The best subset selection process resulted in a model using `Lot_Size`, `Building_Square_Feet`, `Beds`, and `Baths` to predict `Sale_Price`.
 
 ```{r}
 # Refit MLR model
@@ -390,9 +390,11 @@ mlr = lm(Sale_Price ~ ., data = train)
 
 # Determine best model
 best_subset <- MASS::stepAIC(mlr, direction = "backward", scope = ~ 1)
+```
 
+```{r eval = T}
 # Refit best model
-best_subset <- train(Sale_Price ~ 1,
+best_subset <- train(Sale_Price ~ Lot_Size + Building_Square_Feet + Bedrooms + Baths,
                     data = train,
                     trControl = train_control,
                     method = 'lm')
@@ -425,14 +427,14 @@ fit.ridge <- train(Sale_Price ~ ., data = train,
   tuneGrid = tune.grid.ridge)
 
 # Tuning Parameters 
-print(fit.ridge)
+# print(fit.ridge)
 
 # fitting the model on the test data
 ridge_pred <- predict(fit.ridge, test)
 ridge_mse = Metrics::mse(ridge_pred, test$Sale_Price)
 print(paste("MSE from Test Set: ", ridge_mse))
 # model coefficients
-coef(fit.ridge$finalModel, s = fit.ridge$bestTune$lambda)
+# coef(fit.ridge$finalModel, s = fit.ridge$bestTune$lambda)
 
 
 # Fitting Lasso regression model
@@ -452,7 +454,7 @@ lasso_pred <- predict(fit.lasso, test)
 lasso_mse = Metrics::mse(lasso_pred, test$Sale_Price)
 print(paste("MSE from Test Set: ", lasso_mse))
 # model coefficients
-coef(fit.lasso$finalModel, s = fit.lasso$bestTune$lambda)
+# coef(fit.lasso$finalModel, s = fit.lasso$bestTune$lambda)
 ```
 
 For the model using principle components, we first selected all numeric variables except for the response and calculated the principle components. The cumulative variance is shown below, indicating that only the first two principle components are needed.
@@ -490,7 +492,7 @@ print(pc_slr)
 # predict to test data
 pc_slr_preds = predict(pc_slr, PC_test)
 pc_mse = Metrics::mse(pc_slr_preds, PC_test$Sale_Price)
-print(paste("MSE from Test Set: ", pce_mse))
+print(paste("MSE from Test Set: ", pc_mse))
 
 # Loadings from first PC
 PCs$rotation[,1]
@@ -529,12 +531,12 @@ poly_mse = Metrics::mse(poly_slr_preds, poly_test$Sale_Price)
 print(paste("MSE from Test Set: ", poly_mse))
 ```
 
-Comparing the models on mean squared error when predicting to the test set, we can see which model performed the best when predicting to the test data (Table \@ref(tab:MSETable)). From this table, the top performing model on test data was _____.
+Comparing the models on mean squared error when predicting to the test set, we can see which model performed the best when predicting to the test data (Table \@ref(tab:MSETable)). From this table, the top performing model on test data was the Lasso regularized model, followed closely by the MLR model. This is likely due to overfitting from the MLR model and effective variable selection for the Lasso model.
 
 ```{r MSETable, eval = T}
 tibble(Model = c("SLR", "MLR", "Backward Selection", 
                 "Ridge", "Lasso", "PCA", "Polynomial"),
-    MSE = c(slr_mse, mlr_mse, bs_mse, ridge_mse, lasso_mse, pc_mse)) %>%
-    arrange(desc(MSE)) %>%
+    MSE = c(slr_mse, mlr_mse, bs_mse, ridge_mse, lasso_mse, pc_mse, poly_mse)) %>%
+    arrange(MSE) %>%
     knitr::kable(caption = "A table of MSE for the models compared when predicting to the test data.")
 ```
