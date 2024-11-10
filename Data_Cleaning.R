@@ -37,6 +37,7 @@ for(i in 1:nrow(data)){
 data = data %>%
     mutate(
       Sell_Date = mdy(sell_date),
+      Day_of_Week = wday(Sell_Date),
       Rooms = as.numeric(rooms),
       Bedrooms = as.numeric(bedrooms),
       Baths = as.numeric(baths),
